@@ -1,0 +1,11 @@
+{
+  "paciente": {
+    "id": "12345678900",
+    "nome": "Maria",
+    "idade": "40"
+  },
+  "anamnese": {
+    "queixa": "dor abdominal",
+    "intensidade": "9"
+  }
+}

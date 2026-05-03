@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h2>SINCLIN</h2>
+
+<input id="i"/>
+<button onclick="s()">Enviar</button>
+
+<pre id="o"></pre>
+
+<script>
+let sid="ui_"+Date.now();
+
+async function s(){
+let v=document.getElementById('i').value;
+
+let r=await fetch("http://localhost:3001/chat",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+session_id:sid,
+input:{raw_text:v}
+})
+});
+
+let j=await r.json();
+
+document.getElementById('o').innerText=
+v+" -> "+j.text;
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "default": {
+    "data": {},
+    "step": null
+  },
+  "test-ui": {
+    "data": {},
+    "step": "coletar_nome"
+  },
+  "ui": {
+    "data": {},
+    "step": "coletar_nome"
+  }
+}
