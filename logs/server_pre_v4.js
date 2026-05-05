@@ -4,42 +4,20 @@ const app = express();
 app.use(express.json());
 
 app.post('/chat', (req, res) => {
-  try {
-
-    const path = require('path');
-    const engine = require(path.join(__dirname, '../../core/src/sioc/resolve/decision.engine'));
-
-    let payload = req.body || {};
-
-    if (!payload.input) {
-      payload = { input: payload };
-    }
-
-    if (!payload.input.raw_text) {
-      payload.input.raw_text = "";
-    }
-
-    const result = engine.run(payload);
-
-    if (!result || typeof result !== 'object') {
-      return res.status(500).json({
-        text: 'engine_invalid_response',
-        next_step: null,
-        structured: { error: true }
-      });
-    }
-
-    return res.json(result);
-
-  } catch (err) {
-    return res.status(200).json({
-      text: 'engine_safe_fallback',
-      next_step: null,
-      structured: { error: true, message: err.message }
-    });
+  // SINCLIN_FORCE_INPUT_START
+  if (!req.body) req.body = {};
+  if (!req.body.input) {
+    req.body = { input: req.body };
   }
-});
-// SINCLIN_SAFE_ROUTE
+  // SINCLIN_FORCE_INPUT_END
+  try {
+    const engine = require('../../core/src/sioc/resolve/decision.engine');
+const path = require('path');
+// SINCLIN_WRAPPER_START
+function __sinclin_safe_run(engine, body){
+  try{
+    if(body && body.raw_text){
+      return engine.run({ input: body });
     }
     return engine.run(body);
   }catch(e){
@@ -86,7 +64,6 @@ app.get('/', (req, res) => res.send('API OK'));
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(API ON ));
-
 
 
 
