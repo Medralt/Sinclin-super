@@ -4,29 +4,12 @@ const app = express();
 app.use(express.json());
 
 app.post('/chat', (req, res) => {
-  try {
-    const path = require('path');
-    const engine = require(path.join(__dirname, '../../core/src/sioc/resolve/decision.engine'));
-
-    let payload = req.body || {};
-
-    if (!payload.input) payload = { input: payload };
-    if (!payload.input.raw_text) payload.input.raw_text = "";
-
-    const result = engine.run(payload);
-
-    return res.status(200).json(result);
-
-  } catch (err) {
-    return res.status(200).json({
-      text: 'SINCLIN_RUNTIME_ERROR',
-      next_step: null,
-      structured: {
-        error: true,
-        message: err.message,
-        stack: err.stack
-      }
-    });
+  return res.status(200).json({
+    text: 'SINCLIN_OK_DIRECT',
+    next_step: 'test',
+    structured: { ok: true }
+  });
+});
   }
 });
     }
@@ -77,6 +60,7 @@ app.get('/', (req, res) => res.send('API OK'));
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(API ON ));
+
 
 
 
