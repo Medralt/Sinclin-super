@@ -4,9 +4,8 @@ const app = express();
 app.use(express.json());
 
 app.post('/chat', (req, res) => {
-  // SINCLIN_DEBUG_LOG_START
-  console.log('REQ_BODY:', JSON.stringify(req.body));
-  // SINCLIN_DEBUG_LOG_END
+  console.log('REQ_BODY_LOG:', JSON.stringify(req.body));
+  
   try {
 
     const path = require('path');
@@ -32,7 +31,7 @@ app.post('/chat', (req, res) => {
       });
     }
 
-    return res.json(result);
+    return return res.json(result); // SINCLIN_SAFE_RETURN
 
   } catch (err) {
     return res.status(200).json({
@@ -62,7 +61,7 @@ app.post('/chat', (req, res) => {
       });
     }
 
-    res.json(result);
+    return res.json(result); // SINCLIN_SAFE_RETURN
 
   } catch (err) {
     console.error(err);
@@ -78,6 +77,7 @@ app.get('/', (req, res) => res.send('API OK'));
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(API ON ));
+
 
 
 
