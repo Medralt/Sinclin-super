@@ -4,6 +4,12 @@ const app = express();
 app.use(express.json());
 
 app.post('/chat', (req, res) => {
+  // SINCLIN_FORCE_INPUT_START
+  if (!req.body) req.body = {};
+  if (!req.body.input) {
+    req.body = { input: req.body };
+  }
+  // SINCLIN_FORCE_INPUT_END
   try {
     const engine = require('../../core/src/sioc/resolve/decision.engine');
 const path = require('path');
@@ -58,5 +64,6 @@ app.get('/', (req, res) => res.send('API OK'));
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(API ON ));
+
 
 
