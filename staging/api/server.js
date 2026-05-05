@@ -1,3 +1,11 @@
+console.log('=== SINCLIN BOOT START ===');
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT_EXCEPTION:', err.stack);
+});
+
+process.on('unhandledRejection', (err) => {
+  console.error('UNHANDLED_REJECTION:', err);
+});
 const express = require('express');
 const app = express();
 
@@ -60,6 +68,7 @@ app.get('/', (req, res) => res.send('API OK'));
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(API ON ));
+
 
 
 
