@@ -39,18 +39,7 @@ app.post('/chat', (req, res) => {
     });
   }
 });
-// SINCLIN_SAFE_ROUTE
-    }
-    return engine.run(body);
-  }catch(e){
-    return {
-      text: "engine_error",
-      next_step: null,
-      structured: { error: true, message: e.message }
-    };
-  }
-}
-// SINCLIN_WRAPPER_END
+
 
     if (!req.body || !req.body.raw_text) {
       return res.status(400).json({
@@ -86,6 +75,7 @@ app.get('/', (req, res) => res.send('API OK'));
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(API ON ));
+
 
 
 
