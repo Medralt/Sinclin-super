@@ -8,6 +8,7 @@ app.post('/chat', (req, res) => {
     const engine = require('../../core/src/sioc/resolve/decision.engine');
 
     const payload = {
+      id: req.body && req.body.id ? req.body.id : 'default-session',
       input: {
         raw_text: (req.body && req.body.raw_text) ? req.body.raw_text : ""
       }
