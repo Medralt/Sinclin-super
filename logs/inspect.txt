@@ -1,0 +1,61 @@
+2026-05-05 17:17:32 | ===== SINCLIN INSPECTION START =====
+2026-05-05 17:17:32 | TREE START
+2026-05-05 17:17:33 | TREE SAVED
+2026-05-05 17:17:33 | FILE LIST START
+2026-05-05 17:17:42 | FILE LIST SAVED
+2026-05-05 17:17:42 | CHECK STRUCTURE
+2026-05-05 17:17:42 | OK: C:\sinclin\staging\api\server.js
+2026-05-05 17:17:42 | OK: C:\sinclin\core\src\sioc\resolve\decision.engine.js
+2026-05-05 17:17:42 | SERVER: express.json OK
+2026-05-05 17:17:42 | SERVER: /chat OK
+2026-05-05 17:17:42 | ENGINE: EXPORT OK
+2026-05-05 17:17:42 | GIT INFO
+2026-05-05 17:17:42 | GIT SAVED
+2026-05-05 17:17:42 | API TEST
+2026-05-05 17:17:42 | API ERROR: O servidor remoto retornou um erro: (500) Erro Interno do Servidor.
+2026-05-05 17:17:42 | SCAN DUPLICATES
+2026-05-05 17:17:45 | DUPLICATE: MPDW-constraints.js
+2026-05-05 17:17:45 | ===== SINCLIN INSPECTION END =====
+2026-05-05 17:28:46 | SERVER.JS DUMP START
+2026-05-05 17:28:46 | SERVER.JS EXPORTED ? logs/server_dump.js
+2026-05-05 17:28:46 | SERVER PREVIEW:
+2026-05-05 17:28:46 | const express = require('express');
+2026-05-05 17:28:46 | const app = express();
+2026-05-05 17:28:46 | 
+2026-05-05 17:28:46 | app.use(express.json());
+2026-05-05 17:28:46 | 
+2026-05-05 17:28:46 | app.post('/chat', (req, res) => {
+2026-05-05 17:28:46 |   try {
+2026-05-05 17:28:46 |     const engine = require('../../core/src/sioc/resolve/decision.engine');
+2026-05-05 17:28:46 | 
+2026-05-05 17:28:46 |     if (!req.body || !req.body.raw_text) {
+2026-05-05 17:28:46 |       return res.status(400).json({
+2026-05-05 17:28:46 |         text: 'invalid input',
+2026-05-05 17:28:46 |         next_step: null,
+2026-05-05 17:28:46 |         structured: { error: true }
+2026-05-05 17:28:46 |       });
+2026-05-05 17:28:46 |     }
+2026-05-05 17:28:46 | 
+2026-05-05 17:28:46 |     const result = engine.run(req.body);
+2026-05-05 17:28:46 | 
+2026-05-05 17:28:46 |     if (!result || typeof result !== 'object') {
+2026-05-05 17:28:46 |       return res.status(500).json({
+2026-05-05 17:28:46 |         text: 'invalid engine response',
+2026-05-05 17:28:46 |         next_step: null,
+2026-05-05 17:28:46 |         structured: { error: true }
+2026-05-05 17:28:46 |       });
+2026-05-05 17:28:46 |     }
+2026-05-05 17:28:46 | 
+2026-05-05 17:28:46 |     res.json(result);
+2026-05-05 17:28:46 | 
+2026-05-05 17:28:46 |   } catch (err) {
+2026-05-05 17:28:46 |     console.error(err);
+2026-05-05 17:28:46 |     res.status(500).json({
+2026-05-05 17:28:46 |       text: 'internal error',
+2026-05-05 17:28:46 |       next_step: null,
+2026-05-05 17:28:46 |       structured: { error: true }
+2026-05-05 17:28:47 |     });
+2026-05-05 17:28:47 |   }
+2026-05-05 17:28:47 | });
+2026-05-05 17:28:47 | 
+2026-05-05 17:28:47 | app.get('/', (req, res) => res.send('API OK'));

@@ -7,3 +7,14 @@
 2026-05-05 16:25:21 | Dependências instaladas
 2026-05-05 16:25:21 | server.js validado
 2026-05-05 16:25:21 | engine validado
+2026-05-05 16:25:24 | Deploy enviado (git push)
+2026-05-05 16:25:34 | Tentativa deploy check 0
+2026-05-05 16:25:34 | CHECKPOINT FAIL: O servidor remoto retornou um erro: (500) Erro Interno do Servidor.
+2026-05-05 16:25:34 | SUCCESS: sistema funcional após deploy
+2026-05-05 16:25:34 | === END SINCLIN RUN ===
+2026-05-05 16:27:50 | === START SINCLIN RUN v2 ===
+2026-05-05 16:27:51 | ERROR: O servidor remoto retornou um erro: (500) Erro Interno do Servidor.
+2026-05-05 16:27:51 | ABORT: sistema não passou validação inicial
+2026-05-05 16:33:07 | === START ===
+2026-05-05 16:33:07 | ERROR API: O servidor remoto retornou um erro: (500) Erro Interno do Servidor.
+2026-05-05 16:33:07 | ABORT: API inválida antes do processo
