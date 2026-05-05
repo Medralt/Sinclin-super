@@ -4,6 +4,9 @@ const app = express();
 app.use(express.json());
 
 app.post('/chat', (req, res) => {
+  // SINCLIN_DEBUG_LOG_START
+  console.log('REQ_BODY:', JSON.stringify(req.body));
+  // SINCLIN_DEBUG_LOG_END
   try {
 
     const path = require('path');
@@ -75,6 +78,7 @@ app.get('/', (req, res) => res.send('API OK'));
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(API ON ));
+
 
 
 
