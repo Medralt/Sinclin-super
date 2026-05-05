@@ -1,4 +1,4 @@
-﻿const express = require('express');
+const express = require('express');
 const app = express();
 
 app.use(express.json());
@@ -15,7 +15,7 @@ app.post('/chat', (req, res) => {
       });
     }
 
-    const result = engine.run(req.body);
+    const result = engine.run({ input: req.body });
 
     if (!result || typeof result !== 'object') {
       return res.status(500).json({
@@ -41,3 +41,4 @@ app.get('/', (req, res) => res.send('API OK'));
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(API ON ));
+
