@@ -119,12 +119,19 @@ app.post("/chat", async (req, res) => {
       : `SINCLIN:${text}`;
 
     return res.json({
-      ok: true,
-      persona,
-      session,
-      response,
-      timestamp: new Date().toISOString()
-    });
+  ok: true,
+  response: "SINCLIN runtime online",
+  agent: {
+    role: "clinical"
+  },
+  voice: {
+    ok: true,
+    voice: true,
+    presence: true,
+    timestamp: new Date().toISOString()
+  },
+  timestamp: new Date().toISOString()
+});
 
   } catch (err) {
 
@@ -139,4 +146,5 @@ app.post("/chat", async (req, res) => {
     });
   }
 });
+
 
