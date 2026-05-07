@@ -98,3 +98,45 @@ app.listen(
   }
 );
 
+
+app.post("/chat", async (req, res) => {
+
+  try {
+
+    const {
+      persona = "doctor",
+      session = "production",
+      text = ""
+    } = req.body || {};
+
+    const response =
+      typeof globalThis.sinclinRuntime === "function"
+      ? await globalThis.sinclinRuntime({
+          persona,
+          session,
+          text
+        })
+      : `SINCLIN:${text}`;
+
+    return res.json({
+      ok: true,
+      persona,
+      session,
+      response,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (err) {
+
+    console.error(
+      "[SINCLIN_CHAT_FATAL]",
+      err
+    );
+
+    return res.status(500).json({
+      ok: false,
+      error: "runtime_failure"
+    });
+  }
+});
+
