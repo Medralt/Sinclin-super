@@ -1,6 +1,27 @@
-﻿const express = require("express");
+const express = require("express");
 const cors = require("cors");
 const OpenAI = require("openai");
+
+/*
+ * SINCLIN API — staging/api/server.js
+ * Deploy: Render (sinclin-api.onrender.com / api.sinclin.net)
+ *
+ * ENDPOINTS:
+ *   GET  /health                          → status de todos os módulos
+ *   GET  /scanner                         → introspection do runtime (uptime, memória, módulos)
+ *   GET  /runtime                         → status dos módulos (chat, sioc, session, devices)
+ *   GET  /orchestration                   → status da orquestração e agentes disponíveis
+ *   POST /chat                            → chat IA (GPT-4o-mini)
+ *   POST /sioc                            → anamnese guiada (state machine)
+ *   GET  /sioc/:session_id                → leitura de sessão SIOC
+ *   POST /sioc/device/:type               → ingestão de dados de dispositivo médico
+ *
+ * CONTRATO DO CHAT (POST /chat):
+ *   Body aceita:  { raw_text }  — clientes locais / SIOC
+ *              ou { text }      — Lovable UI (envia também persona e session, ignorados)
+ *   Resposta:     { ok, text, engine, timestamp }
+ *   Histórico:    { history: [{ role, text }] }  — opcional
+ */
 
 let siocEngine = null, sessionMgr = null, deviceReg = null;
 try { siocEngine = require("./decision.engine");  console.log("[SINCLIN] SIOC engine OK");     } catch (e) { console.warn("[SINCLIN] SIOC engine falhou:", e.message); }
@@ -54,17 +75,71 @@ app.get("/health", (req, res) => {
 });
 
 /* =====================================
-   CHAT
-   Contrato da UI: envia { raw_text, id }
-                   lê   data.text
+   SCANNER — runtime introspection
+===================================== */
+
+app.get("/scanner", (req, res) => {
+  res.json({
+    ok: true,
+    scanner: "active",
+    runtime: {
+      uptime: process.uptime(),
+      memory: process.memoryUsage(),
+      engine: engineOnline ? "gpt-4o-mini" : "offline",
+      sioc: siocEngine ? "online" : "offline",
+      sessions: sessionMgr ? sessionMgr.stats() : null,
+      devices: deviceReg ? deviceReg.list() : []
+    },
+    timestamp: new Date().toISOString()
+  });
+});
+
+/* =====================================
+   RUNTIME — módulos ativos
+===================================== */
+
+app.get("/runtime", (req, res) => {
+  res.json({
+    ok: true,
+    status: "online",
+    modules: {
+      chat: engineOnline,
+      sioc: !!siocEngine,
+      session_manager: !!sessionMgr,
+      device_registry: !!deviceReg
+    },
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString()
+  });
+});
+
+/* =====================================
+   ORCHESTRATION — agentes disponíveis
+===================================== */
+
+app.get("/orchestration", (req, res) => {
+  res.json({
+    ok: true,
+    orchestration: "active",
+    agents: ["doctor", "patient", "collaborator", "marketing", "commercial"],
+    active_sessions: sessionMgr ? sessionMgr.stats().active_sessions : 0,
+    timestamp: new Date().toISOString()
+  });
+});
+
+/* =====================================
+   CHAT — POST /chat
+   Aceita: { raw_text } ou { text }
+   Retorna: { ok, text, engine, timestamp }
 ===================================== */
 
 app.post("/chat", async (req, res) => {
   const body = req.body || {};
-  const text = body.raw_text || body.text || body.input || body.message || body.query || "";
+  // raw_text: clientes locais / SIOC | text: Lovable UI
+  const text = (body.raw_text || body.text || body.input || body.message || body.query || "").trim();
   const { history = [] } = body;
 
-  if (!text.trim()) {
+  if (!text) {
     return res.status(400).json({ ok: false, error: "text is required" });
   }
 
@@ -91,11 +166,9 @@ app.post("/chat", async (req, res) => {
       messages
     });
 
-    const responseText = completion.choices[0].message.content;
-
     return res.json({
       ok: true,
-      text: responseText,
+      text: completion.choices[0].message.content,
       engine: "gpt-4o-mini",
       timestamp: new Date().toISOString()
     });
@@ -111,7 +184,9 @@ app.post("/chat", async (req, res) => {
 });
 
 /* =====================================
-   SIOC — anamnese guiada
+   SIOC — POST /sioc
+   Body: { session_id, raw_text }
+   Retorna: { ok, text, next_step, structured }
 ===================================== */
 
 app.post("/sioc", (req, res) => {
@@ -122,12 +197,29 @@ app.post("/sioc", (req, res) => {
     if (sessionMgr) sessionMgr.getOrCreate(session_id);
     const result = siocEngine.run({ session_id, input: { raw_text: raw_text || "" } });
     if (sessionMgr && result.structured) {
-      sessionMgr.update(session_id, { sioc_step: result.next_step, paciente: result.structured.paciente || {}, anamnese: result.structured.anamnese || {} });
+      sessionMgr.update(session_id, {
+        sioc_step: result.next_step,
+        paciente: result.structured.paciente || {},
+        anamnese: result.structured.anamnese || {}
+      });
       sessionMgr.pushEvent(session_id, { type: "sioc", step: result.next_step });
     }
-    return res.json({ ok: true, text: result.text, next_step: result.next_step, structured: result.structured, timestamp: new Date().toISOString() });
-  } catch (e) { console.error("[SIOC_ERROR]", e.message); return res.status(500).json({ ok: false, error: "sioc_failed" }); }
+    return res.json({
+      ok: true,
+      text: result.text,
+      next_step: result.next_step,
+      structured: result.structured,
+      timestamp: new Date().toISOString()
+    });
+  } catch (e) {
+    console.error("[SIOC_ERROR]", e.message);
+    return res.status(500).json({ ok: false, error: "sioc_failed" });
+  }
 });
+
+/* =====================================
+   SIOC — GET /sioc/:session_id
+===================================== */
 
 app.get("/sioc/:session_id", (req, res) => {
   try {
@@ -135,8 +227,15 @@ app.get("/sioc/:session_id", (req, res) => {
     const session = sessionMgr.get(req.params.session_id);
     if (!session) return res.status(404).json({ ok: false, error: "sessao nao encontrada" });
     return res.json({ ok: true, session, timestamp: new Date().toISOString() });
-  } catch (e) { return res.status(500).json({ ok: false, error: "internal_error" }); }
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: "internal_error" });
+  }
 });
+
+/* =====================================
+   SIOC — POST /sioc/device/:type
+   Body: { session_id, data }
+===================================== */
 
 app.post("/sioc/device/:type", async (req, res) => {
   try {
@@ -144,74 +243,30 @@ app.post("/sioc/device/:type", async (req, res) => {
     const { session_id, data } = req.body || {};
     if (!session_id) return res.status(400).json({ ok: false, error: "session_id obrigatorio" });
     if (!deviceReg)  return res.status(503).json({ ok: false, error: "device_registry_offline" });
-    if (!deviceReg.isActive(type)) return res.status(404).json({ ok: false, error: "device_not_active", message: "Configure a env var no Render para ativar este device." });
+    if (!deviceReg.isActive(type)) return res.status(404).json({
+      ok: false,
+      error: "device_not_active",
+      message: "Configure a env var SIOC_" + type.toUpperCase() + "_ENABLED=true no Render."
+    });
     const device = deviceReg.get(type);
     if (sessionMgr) sessionMgr.getOrCreate(session_id);
     let result = {};
-    try { result = await device.adapter.process({ session_id, data, sessionMgr }); }
-    catch (ae) { console.error("[DEVICE:" + type + "]", ae.message); return res.status(500).json({ ok: false, error: "adapter_failed" }); }
+    try {
+      result = await device.adapter.process({ session_id, data, sessionMgr });
+    } catch (ae) {
+      console.error("[DEVICE:" + type + "]", ae.message);
+      return res.status(500).json({ ok: false, error: "adapter_failed" });
+    }
     if (sessionMgr) sessionMgr.setDeviceData(session_id, type, result);
     return res.json({ ok: true, device: type, result, timestamp: new Date().toISOString() });
-  } catch (e) { return res.status(500).json({ ok: false, error: "internal_error" }); }
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: "internal_error" });
+  }
 });
 
-
-/* =====================================
-   SCANNER — runtime introspection
-===================================== */
-
-app.get("/scanner", (req, res) => {
-  res.json({
-    ok: true,
-    scanner: "active",
-    runtime: {
-      uptime: process.uptime(),
-      memory: process.memoryUsage(),
-      engine: engineOnline ? "gpt-4o-mini" : "offline",
-      sioc: siocEngine ? "online" : "offline",
-      sessions: sessionMgr ? sessionMgr.stats() : null,
-      devices: deviceReg ? deviceReg.list() : []
-    },
-    timestamp: new Date().toISOString()
-  });
-});
-
-/* =====================================
-   RUNTIME — cognitive runtime status
-===================================== */
-
-app.get("/runtime", (req, res) => {
-  res.json({
-    ok: true,
-    status: "online",
-    modules: {
-      chat: engineOnline,
-      sioc: !!siocEngine,
-      session_manager: !!sessionMgr,
-      device_registry: !!deviceReg
-    },
-    uptime: process.uptime(),
-    timestamp: new Date().toISOString()
-  });
-});
-
-/* =====================================
-   ORCHESTRATION — orchestration status
-===================================== */
-
-app.get("/orchestration", (req, res) => {
-  res.json({
-    ok: true,
-    orchestration: "active",
-    agents: ["doctor", "patient", "collaborator", "marketing", "commercial"],
-    active_sessions: sessionMgr ? sessionMgr.stats().active_sessions : 0,
-    timestamp: new Date().toISOString()
-  });
-});
 /* =====================================
    START
 ===================================== */
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log("[SINCLIN] API ON", PORT));
-
