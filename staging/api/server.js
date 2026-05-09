@@ -91,11 +91,12 @@ app.post("/chat", async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (err) {
-    console.error("[SINCLIN_CHAT_ERROR]", err.message);
+    console.error("[SINCLIN_CHAT_ERROR]", err.message, err.status, err.errorDetails);
     return res.status(500).json({
       ok: false,
       text: "Não foi possível processar sua mensagem. Tente novamente.",
       error: "generation_failed",
+      debug: err.message,
       timestamp: new Date().toISOString()
     });
   }
