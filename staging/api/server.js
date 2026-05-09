@@ -26,7 +26,7 @@ try {
   if (!apiKey) throw new Error("GEMINI_API_KEY not set");
   const genAI = new GoogleGenerativeAI(apiKey);
   geminiModel = genAI.getGenerativeModel({
-    model: "gemini-1.5-flash",
+    model: "gemini-2.0-flash",
     systemInstruction: SYSTEM_PROMPT
   });
   engineOnline = true;
@@ -43,7 +43,7 @@ app.get("/health", (req, res) => {
   res.json({
     ok: true,
     status: "online",
-    engine: engineOnline ? "gemini-1.5-flash" : "offline",
+    engine: engineOnline ? "gemini-2.0-flash" : "offline",
     timestamp: new Date().toISOString()
   });
 });
@@ -87,16 +87,15 @@ app.post("/chat", async (req, res) => {
     return res.json({
       ok: true,
       text: responseText,
-      engine: "gemini-1.5-flash",
+      engine: "gemini-2.0-flash",
       timestamp: new Date().toISOString()
     });
   } catch (err) {
-    console.error("[SINCLIN_CHAT_ERROR]", err.message, err.status, err.errorDetails);
+    console.error("[SINCLIN_CHAT_ERROR]", err.message);
     return res.status(500).json({
       ok: false,
       text: "Não foi possível processar sua mensagem. Tente novamente.",
       error: "generation_failed",
-      debug: err.message,
       timestamp: new Date().toISOString()
     });
   }
