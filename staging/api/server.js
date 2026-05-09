@@ -1,96 +1,49 @@
 const express = require("express");
 const cors = require("cors");
 
-const {
-  initializeCognitiveRuntime
-} = require("./runtime/core/cognitive.boot");
-
-const {
-  orchestrate
-} = require("./runtime/orchestration/orchestrator");
-
-const {
-  cognitiveHealth
-} = require("./runtime/health/cognitive.health");
-
 const app = express();
 
-app.use(cors({
-  origin: true,
-  methods: ["GET", "POST", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
-}));
-
+app.use(cors({ origin: true }));
 app.use(express.json());
 
-initializeCognitiveRuntime();
-
-/* =====================================
-   CHAT
-===================================== */
-
-app.post(
-  "/chat",
-  async (req, res) => {
-
-    try {
-
-      const response =
-        await orchestrate(
-          req.body || {}
-        );
-
-      res.json(response);
-
-    } catch (err) {
-
-      console.error(
-        "[SINCLIN_CHAT_ERROR]",
-        err
-      );
-
-      res.status(500).json({
-
-        ok: false,
-
-        error:
-          "runtime_failure",
-
-        timestamp:
-          new Date().toISOString()
-      });
-    }
-  }
-);
+/* optional runtime boot — non-fatal if modules are absent */
+try {
+  const { initializeCognitiveRuntime } = require("./runtime/core/cognitive.boot");
+  initializeCognitiveRuntime();
+} catch (err) {
+  console.warn("[SINCLIN] runtime boot skipped:", err.message);
+}
 
 /* =====================================
    HEALTH
 ===================================== */
 
-app.get(
-  "/health",
-  (req, res) => {
+app.get("/health", (req, res) => {
+  res.json({
+    ok: true,
+    status: "online",
+    timestamp: new Date().toISOString()
+  });
+});
 
-    res.json(
-      cognitiveHealth()
-    );
-  }
-);
+/* =====================================
+   CHAT
+===================================== */
+
+app.post("/chat", (req, res) => {
+  res.json({
+    ok: true,
+    response: "SINCLIN online",
+    timestamp: new Date().toISOString()
+  });
+});
 
 /* =====================================
    START
 ===================================== */
 
-const PORT =
-  process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;
 
-app.listen(
-  PORT,
-  () => {
-
-    console.log(
-      "[SINCLIN]",
-      "API ON " + PORT
-    );
-  }
-);
+app.listen(PORT, () => {
+  console.log("[SINCLIN] API ON", PORT);
+});

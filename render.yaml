@@ -5,11 +5,11 @@ services:
     plan: starter
 
     buildCommand: |
-      cd api
+      cd staging/api
       npm install
 
     startCommand: |
-      cd api
+      cd staging/api
       node server.js
 
     healthCheckPath: /health
