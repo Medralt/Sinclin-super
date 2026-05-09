@@ -1,4 +1,4 @@
-const express = require("express");
+﻿const express = require("express");
 const cors = require("cors");
 const OpenAI = require("openai");
 
@@ -155,9 +155,63 @@ app.post("/sioc/device/:type", async (req, res) => {
   } catch (e) { return res.status(500).json({ ok: false, error: "internal_error" }); }
 });
 
+
+/* =====================================
+   SCANNER — runtime introspection
+===================================== */
+
+app.get("/scanner", (req, res) => {
+  res.json({
+    ok: true,
+    scanner: "active",
+    runtime: {
+      uptime: process.uptime(),
+      memory: process.memoryUsage(),
+      engine: engineOnline ? "gpt-4o-mini" : "offline",
+      sioc: siocEngine ? "online" : "offline",
+      sessions: sessionMgr ? sessionMgr.stats() : null,
+      devices: deviceReg ? deviceReg.list() : []
+    },
+    timestamp: new Date().toISOString()
+  });
+});
+
+/* =====================================
+   RUNTIME — cognitive runtime status
+===================================== */
+
+app.get("/runtime", (req, res) => {
+  res.json({
+    ok: true,
+    status: "online",
+    modules: {
+      chat: engineOnline,
+      sioc: !!siocEngine,
+      session_manager: !!sessionMgr,
+      device_registry: !!deviceReg
+    },
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString()
+  });
+});
+
+/* =====================================
+   ORCHESTRATION — orchestration status
+===================================== */
+
+app.get("/orchestration", (req, res) => {
+  res.json({
+    ok: true,
+    orchestration: "active",
+    agents: ["doctor", "patient", "collaborator", "marketing", "commercial"],
+    active_sessions: sessionMgr ? sessionMgr.stats().active_sessions : 0,
+    timestamp: new Date().toISOString()
+  });
+});
 /* =====================================
    START
 ===================================== */
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log("[SINCLIN] API ON", PORT));
+
