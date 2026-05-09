@@ -2,6 +2,11 @@ const express = require("express");
 const cors = require("cors");
 const OpenAI = require("openai");
 
+let siocEngine = null, sessionMgr = null, deviceReg = null;
+try { siocEngine = require("./decision.engine");  console.log("[SINCLIN] SIOC engine OK");     } catch (e) { console.warn("[SINCLIN] SIOC engine falhou:", e.message); }
+try { sessionMgr = require("./session.manager");  console.log("[SINCLIN] Session manager OK"); } catch (e) { console.warn("[SINCLIN] Session manager falhou:", e.message); }
+try { deviceReg  = require("./device.registry");  deviceReg.load();                            } catch (e) { console.warn("[SINCLIN] Device registry falhou:", e.message); }
+
 const app = express();
 app.use(cors({ origin: true }));
 app.use(express.json());
@@ -40,6 +45,10 @@ app.get("/health", (req, res) => {
     ok: true,
     status: "online",
     engine: engineOnline ? "gpt-4o-mini" : "offline",
+    sioc: siocEngine ? "online" : "offline",
+    session_manager: sessionMgr ? "online" : "offline",
+    devices: deviceReg ? deviceReg.list() : [],
+    sessions: sessionMgr ? sessionMgr.stats() : null,
     timestamp: new Date().toISOString()
   });
 });
@@ -99,6 +108,51 @@ app.post("/chat", async (req, res) => {
       timestamp: new Date().toISOString()
     });
   }
+});
+
+/* =====================================
+   SIOC — anamnese guiada
+===================================== */
+
+app.post("/sioc", (req, res) => {
+  try {
+    if (!siocEngine) return res.status(503).json({ ok: false, error: "sioc_offline" });
+    const { session_id, raw_text } = req.body || {};
+    if (!session_id) return res.status(400).json({ ok: false, error: "session_id obrigatorio" });
+    if (sessionMgr) sessionMgr.getOrCreate(session_id);
+    const result = siocEngine.run({ session_id, input: { raw_text: raw_text || "" } });
+    if (sessionMgr && result.structured) {
+      sessionMgr.update(session_id, { sioc_step: result.next_step, paciente: result.structured.paciente || {}, anamnese: result.structured.anamnese || {} });
+      sessionMgr.pushEvent(session_id, { type: "sioc", step: result.next_step });
+    }
+    return res.json({ ok: true, text: result.text, next_step: result.next_step, structured: result.structured, timestamp: new Date().toISOString() });
+  } catch (e) { console.error("[SIOC_ERROR]", e.message); return res.status(500).json({ ok: false, error: "sioc_failed" }); }
+});
+
+app.get("/sioc/:session_id", (req, res) => {
+  try {
+    if (!sessionMgr) return res.status(503).json({ ok: false, error: "session_manager_offline" });
+    const session = sessionMgr.get(req.params.session_id);
+    if (!session) return res.status(404).json({ ok: false, error: "sessao nao encontrada" });
+    return res.json({ ok: true, session, timestamp: new Date().toISOString() });
+  } catch (e) { return res.status(500).json({ ok: false, error: "internal_error" }); }
+});
+
+app.post("/sioc/device/:type", async (req, res) => {
+  try {
+    const { type } = req.params;
+    const { session_id, data } = req.body || {};
+    if (!session_id) return res.status(400).json({ ok: false, error: "session_id obrigatorio" });
+    if (!deviceReg)  return res.status(503).json({ ok: false, error: "device_registry_offline" });
+    if (!deviceReg.isActive(type)) return res.status(404).json({ ok: false, error: "device_not_active", message: "Configure a env var no Render para ativar este device." });
+    const device = deviceReg.get(type);
+    if (sessionMgr) sessionMgr.getOrCreate(session_id);
+    let result = {};
+    try { result = await device.adapter.process({ session_id, data, sessionMgr }); }
+    catch (ae) { console.error("[DEVICE:" + type + "]", ae.message); return res.status(500).json({ ok: false, error: "adapter_failed" }); }
+    if (sessionMgr) sessionMgr.setDeviceData(session_id, type, result);
+    return res.json({ ok: true, device: type, result, timestamp: new Date().toISOString() });
+  } catch (e) { return res.status(500).json({ ok: false, error: "internal_error" }); }
 });
 
 /* =====================================
