@@ -3,15 +3,15 @@ const cors = require("cors");
 
 const {
   initializeCognitiveRuntime
-} = require("../runtime/core/cognitive.boot");
+} = require("./runtime/core/cognitive.boot");
 
 const {
   orchestrate
-} = require("../runtime/orchestration/orchestrator");
+} = require("./runtime/orchestration/orchestrator");
 
 const {
   cognitiveHealth
-} = require("../runtime/health/cognitive.health");
+} = require("./runtime/health/cognitive.health");
 
 const app = express();
 
