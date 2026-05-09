@@ -3,18 +3,15 @@ const cors = require("cors");
 
 const {
   initializeCognitiveRuntime
-} =
-require("../runtime/core/cognitive.boot");
+} = require("../runtime/core/cognitive.boot");
 
 const {
   orchestrate
-} =
-require("../runtime/orchestration/orchestrator");
+} = require("../runtime/orchestration/orchestrator");
 
 const {
   cognitiveHealth
-} =
-require("../runtime/health/cognitive.health");
+} = require("../runtime/health/cognitive.health");
 
 const app = express();
 
@@ -85,7 +82,7 @@ app.get(
 ===================================== */
 
 const PORT =
-process.env.PORT || 3000;
+  process.env.PORT || 3000;
 
 app.listen(
   PORT,
@@ -97,54 +94,3 @@ app.listen(
     );
   }
 );
-
-
-app.post("/chat", async (req, res) => {
-
-  try {
-
-    const {
-      persona = "doctor",
-      session = "production",
-      text = ""
-    } = req.body || {};
-
-    const response =
-      typeof globalThis.sinclinRuntime === "function"
-      ? await globalThis.sinclinRuntime({
-          persona,
-          session,
-          text
-        })
-      : `SINCLIN:${text}`;
-
-    return res.json({
-  ok: true,
-  response: "SINCLIN runtime online",
-  agent: {
-    role: "clinical"
-  },
-  voice: {
-    ok: true,
-    voice: true,
-    presence: true,
-    timestamp: new Date().toISOString()
-  },
-  timestamp: new Date().toISOString()
-});
-
-  } catch (err) {
-
-    console.error(
-      "[SINCLIN_CHAT_FATAL]",
-      err
-    );
-
-    return res.status(500).json({
-      ok: false,
-      error: "runtime_failure"
-    });
-  }
-});
-
-
