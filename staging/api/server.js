@@ -1,36 +1,96 @@
-const express = require('express');
+const express = require("express");
+const cors = require("cors");
+
+const {
+  initializeCognitiveRuntime
+} = require("./runtime/core/cognitive.boot");
+
+const {
+  orchestrate
+} = require("./runtime/orchestration/orchestrator");
+
+const {
+  cognitiveHealth
+} = require("./runtime/health/cognitive.health");
+
 const app = express();
+
+app.use(cors({
+  origin: true,
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
 
 app.use(express.json());
 
-app.post('/chat', (req, res) => {
-  try {
-    const engine = require('../../core/src/sioc/resolve/decision.engine');
+initializeCognitiveRuntime();
 
-    const payload = {
-      id: req.body && req.body.id ? req.body.id : 'default-session',
-      input: {
-        raw_text: (req.body && req.body.raw_text) ? req.body.raw_text : ""
-      }
-    };
+/* =====================================
+   CHAT
+===================================== */
 
-    const result = engine.run(payload);
+app.post(
+  "/chat",
+  async (req, res) => {
 
-    return res.json(result);
+    try {
 
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({
-      text: 'internal_error',
-      next_step: null,
-      structured: { error: true }
-    });
+      const response =
+        await orchestrate(
+          req.body || {}
+        );
+
+      res.json(response);
+
+    } catch (err) {
+
+      console.error(
+        "[SINCLIN_CHAT_ERROR]",
+        err
+      );
+
+      res.status(500).json({
+
+        ok: false,
+
+        error:
+          "runtime_failure",
+
+        timestamp:
+          new Date().toISOString()
+      });
+    }
   }
-});
+);
 
-app.get('/', (req, res) => res.send('API OK'));
+/* =====================================
+   HEALTH
+===================================== */
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log('SINCLIN RUNNING ON', PORT);
-});
+app.get(
+  "/health",
+  (req, res) => {
+
+    res.json(
+      cognitiveHealth()
+    );
+  }
+);
+
+/* =====================================
+   START
+===================================== */
+
+const PORT =
+  process.env.PORT || 3000;
+
+app.listen(
+  PORT,
+  () => {
+
+    console.log(
+      "[SINCLIN]",
+      "API ON " + PORT
+    );
+  }
+);
