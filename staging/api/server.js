@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const OpenAI = require("openai");
 
 const app = express();
 app.use(cors({ origin: true }));
@@ -18,21 +18,17 @@ Princípios:
 - Nunca substitua consulta médica — seja claro sobre seus limites quando relevante
 - Mantenha respostas focadas, úteis e com presença humana`;
 
-let geminiModel = null;
+let openaiClient = null;
 let engineOnline = false;
 
 try {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error("GEMINI_API_KEY not set");
-  const genAI = new GoogleGenerativeAI(apiKey);
-  geminiModel = genAI.getGenerativeModel({
-    model: "gemini-2.0-flash",
-    systemInstruction: SYSTEM_PROMPT
-  });
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error("OPENAI_API_KEY not set");
+  openaiClient = new OpenAI({ apiKey });
   engineOnline = true;
-  console.log("[SINCLIN] Gemini engine online");
+  console.log("[SINCLIN] OpenAI engine online");
 } catch (err) {
-  console.warn("[SINCLIN] Gemini engine offline:", err.message);
+  console.warn("[SINCLIN] OpenAI engine offline:", err.message);
 }
 
 /* =====================================
@@ -43,7 +39,7 @@ app.get("/health", (req, res) => {
   res.json({
     ok: true,
     status: "online",
-    engine: engineOnline ? "gemini-2.0-flash" : "offline",
+    engine: engineOnline ? "gpt-4o-mini" : "offline",
     timestamp: new Date().toISOString()
   });
 });
@@ -63,7 +59,7 @@ app.post("/chat", async (req, res) => {
     return res.status(400).json({ ok: false, error: "text is required" });
   }
 
-  if (!engineOnline || !geminiModel) {
+  if (!engineOnline || !openaiClient) {
     return res.status(503).json({
       ok: false,
       text: "Motor de IA temporariamente indisponível.",
@@ -73,21 +69,25 @@ app.post("/chat", async (req, res) => {
   }
 
   try {
-    const chatHistory = history
-      .filter(m => m.role && m.text)
-      .map(m => ({
-        role: m.role === "assistant" ? "model" : "user",
-        parts: [{ text: m.text }]
-      }));
+    const messages = [
+      { role: "system", content: SYSTEM_PROMPT },
+      ...history
+        .filter(m => m.role && m.text)
+        .map(m => ({ role: m.role === "assistant" ? "assistant" : "user", content: m.text })),
+      { role: "user", content: text }
+    ];
 
-    const chat = geminiModel.startChat({ history: chatHistory });
-    const result = await chat.sendMessage(text);
-    const responseText = result.response.text();
+    const completion = await openaiClient.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages
+    });
+
+    const responseText = completion.choices[0].message.content;
 
     return res.json({
       ok: true,
       text: responseText,
-      engine: "gemini-2.0-flash",
+      engine: "gpt-4o-mini",
       timestamp: new Date().toISOString()
     });
   } catch (err) {
