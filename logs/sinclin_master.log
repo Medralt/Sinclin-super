@@ -1,8 +1,0 @@
-2026-05-05 18:04:20 | ===== SINCLIN MASTER START =====
-2026-05-05 18:04:21 | RESET OK
-2026-05-05 18:04:21 | CLEAN OK
-2026-05-05 18:04:23 | INSTALL OK
-2026-05-05 18:04:23 | ENGINE_OK
-2026-05-05 18:04:23 | {"text":"Informe o identificador do paciente (CPF ou ID):","next_step":"coletar_id","structured":{"paciente":{},"anamnese":{}}}
-2026-05-05 18:04:23 | SERVER FIX APPLIED
-2026-05-05 18:04:25 | REBUILD OK

@@ -1,3 +1,28 @@
-node_modules
+node_modules/
 .env
 npm-debug.log
+*.log
+
+# Backups e rollbacks locais
+backups/
+staging/rollback/
+staging/backup/
+staging/shadow/
+staging/health/
+staging/reports/
+staging/logs/
+
+# Frontend (repositório separado — github.com/Medralt/sinclin-fente)
+sinclin-fente/
+
+# Scripts e ferramentas locais
+tools/
+runtime/
+
+# Arquivos temporários e lixo
+*.tmp
+*.bak
+deploy/
+local-ui/backups/
+local-ui/runtime/
+local-ui/staging/

@@ -1,40 +1,33 @@
-const {
-  resolveAgent
-} =
-require("../cognition/agents/agents.engine");
+﻿const { resolveAgent } = require("../cognition/agents/agents.engine");
+const { cognitiveVoice } = require("../cognition/voice/cognitive.voice");
+const { run: siocRun } = require("../../../core/src/sioc/resolve/decision.engine");
 
-const {
-  cognitiveVoice
-} =
-require("../cognition/voice/cognitive.voice");
+async function orchestrate(payload = {}) {
 
-async function orchestrate(
-  payload = {}
-) {
+  const agent = resolveAgent(payload.persona);
 
-  const agent =
-    resolveAgent(
-      payload.persona
-    );
+  const siocModes = ["sioc", "doctor", "patient"];
+  const useSioc = payload.mode === "sioc" || siocModes.includes(payload.persona);
 
-  const voice =
-    await cognitiveVoice(
-      payload
-    );
+  let sioc = null;
+
+  if (useSioc && payload.session_id && payload.input) {
+    try {
+      sioc = siocRun(payload);
+    } catch (err) {
+      console.error("[SINCLIN_SIOC_ERROR]", err.message);
+    }
+  }
+
+  const voice = await cognitiveVoice(payload);
 
   return {
-
     ok: true,
-
     agent,
-
     voice,
-
-    timestamp:
-      new Date().toISOString()
+    sioc,
+    timestamp: new Date().toISOString()
   };
 }
 
-module.exports = {
-  orchestrate
-};
+module.exports = { orchestrate };
