@@ -53,7 +53,9 @@ app.get("/health", (req, res) => {
 ===================================== */
 
 app.post("/chat", async (req, res) => {
-  const { text = "", history = [] } = req.body || {};
+  const body = req.body || {};
+  const text = body.text || body.input || body.message || body.query || "";
+  const { history = [] } = body;
 
   if (!text.trim()) {
     return res.status(400).json({ ok: false, error: "text is required" });
