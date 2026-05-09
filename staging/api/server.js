@@ -96,6 +96,7 @@ app.post("/chat", async (req, res) => {
       ok: false,
       text: "Não foi possível processar sua mensagem. Tente novamente.",
       error: "generation_failed",
+      debug: err.message,
       timestamp: new Date().toISOString()
     });
   }
