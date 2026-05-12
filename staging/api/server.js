@@ -82,6 +82,10 @@ try {
    HEALTH
 ===================================== */
 
+app.get("/", (req, res) => {
+  res.json({ ok: true, service: "SINCLIN API", version: "1.0.0", docs: "/health" });
+});
+
 app.get("/health", (req, res) => {
   res.json({
     ok: true,
