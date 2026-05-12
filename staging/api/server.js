@@ -24,10 +24,11 @@ const OpenAI = require("openai");
  *   Histórico:    { history: [{ role, text }] }  — opcional
  */
 
-let siocEngine = null, sessionMgr = null, deviceReg = null;
-try { siocEngine = require("./decision.engine");  console.log("[SINCLIN] SIOC engine OK");     } catch (e) { console.warn("[SINCLIN] SIOC engine falhou:", e.message); }
-try { sessionMgr = require("./session.manager");  console.log("[SINCLIN] Session manager OK"); } catch (e) { console.warn("[SINCLIN] Session manager falhou:", e.message); }
-try { deviceReg  = require("./device.registry");  deviceReg.load();                            } catch (e) { console.warn("[SINCLIN] Device registry falhou:", e.message); }
+let siocEngine = null, sessionMgr = null, deviceReg = null, presenceEngine = null;
+try { siocEngine     = require("./decision.engine");  console.log("[SINCLIN] SIOC engine OK");      } catch (e) { console.warn("[SINCLIN] SIOC engine falhou:", e.message); }
+try { sessionMgr     = require("./session.manager");  console.log("[SINCLIN] Session manager OK");  } catch (e) { console.warn("[SINCLIN] Session manager falhou:", e.message); }
+try { deviceReg      = require("./device.registry");  deviceReg.load();                             } catch (e) { console.warn("[SINCLIN] Device registry falhou:", e.message); }
+try { presenceEngine = require("./presence.engine");  console.log("[SINCLIN] Presence Engine OK");  } catch (e) { console.warn("[SINCLIN] Presence Engine falhou:", e.message); }
 
 const app = express();
 app.use(cors({ origin: true }));
@@ -180,7 +181,7 @@ app.post("/chat", async (req, res) => {
   const body = req.body || {};
   // raw_text: clientes locais / SIOC | text: Lovable UI
   const text = (body.raw_text || body.text || body.input || body.message || body.query || "").trim();
-  const { history = [], persona } = body;
+  const { history = [], persona, session_key, profile } = body;
 
   if (!text) {
     return res.status(400).json({ ok: false, error: "text is required" });
@@ -195,14 +196,32 @@ app.post("/chat", async (req, res) => {
     });
   }
 
-  const systemPrompt = resolvePersona(persona);
+  // Presence Engine — memória longitudinal
+  let presenceMemory = null;
+  let contextPrefix = "";
+  if (presenceEngine && session_key) {
+    try {
+      presenceMemory = await presenceEngine.load(session_key);
+      if (profile) presenceMemory.profile = profile;
+      contextPrefix = presenceEngine.buildContextPrefix(presenceMemory);
+    } catch (e) {
+      console.warn("[Presence] load failed:", e.message);
+    }
+  }
+
+  const systemPrompt = resolvePersona(persona) + contextPrefix;
+
+  const historyMessages = presenceMemory
+    ? presenceEngine.getHistory(presenceMemory, 12)
+    : history.filter(m => m.role && m.text).map(m => ({
+        role: m.role === "assistant" ? "assistant" : "user",
+        content: m.text
+      }));
 
   try {
     const messages = [
       { role: "system", content: systemPrompt },
-      ...history
-        .filter(m => m.role && m.text)
-        .map(m => ({ role: m.role === "assistant" ? "assistant" : "user", content: m.text })),
+      ...historyMessages,
       { role: "user", content: text }
     ];
 
@@ -211,11 +230,24 @@ app.post("/chat", async (req, res) => {
       messages
     });
 
+    const replyText = completion.choices[0].message.content;
+
+    // Persiste no Presence Engine
+    if (presenceEngine && session_key) {
+      try {
+        await presenceEngine.append(session_key, "user", text, { profile });
+        await presenceEngine.append(session_key, "assistant", replyText);
+      } catch (e) {
+        console.warn("[Presence] append failed:", e.message);
+      }
+    }
+
     return res.json({
       ok: true,
-      text: completion.choices[0].message.content,
+      text: replyText,
       engine: "gpt-4o-mini",
       persona: persona || "clinical",
+      presence: !!presenceMemory,
       timestamp: new Date().toISOString()
     });
   } catch (err) {
