@@ -83,19 +83,63 @@ function getHistory(memory, n = 10) {
 
 /**
  * Constrói prefixo de contexto para injetar no system prompt.
+ * Inclui dimensão emocional e relacional — não só dados funcionais.
  */
 function buildContextPrefix(memory) {
   if (!memory || !memory.messages?.length) return "";
 
   const parts = [];
-  if (memory.profile) parts.push(`Perfil do usuário: ${memory.profile}.`);
-  if (memory.last_intent) parts.push(`Última intenção detectada: ${memory.last_intent}.`);
-  if (memory.context?.clinic_size) parts.push(`Tamanho da clínica: ${memory.context.clinic_size}.`);
+
+  // Perfil relacional
+  if (memory.profile) parts.push(`Perfil: ${memory.profile}.`);
+
+  // Histórico contextual
+  const msgCount = memory.messages.length;
+  if (msgCount > 1) parts.push(`Este usuário já teve ${msgCount} trocas com o SINCLIN — mantenha continuidade.`);
+
+  // Contexto clínico / organizacional
+  if (memory.context?.clinic_size) parts.push(`Clínica com ${memory.context.clinic_size} profissionais.`);
   if (memory.context?.specialty) parts.push(`Especialidade: ${memory.context.specialty}.`);
 
+  // Estado emocional detectado
+  if (memory.context?.emotional_state) parts.push(`Estado emocional percebido: ${memory.context.emotional_state}.`);
+
+  // Última intenção
+  if (memory.last_intent) parts.push(`Última intenção: ${memory.last_intent}.`);
+
+  // Tópicos já discutidos — evita repetição
+  if (memory.context?.topics_covered?.length) {
+    parts.push(`Tópicos já abordados: ${memory.context.topics_covered.join(", ")}.`);
+  }
+
   if (!parts.length) return "";
-  return `\n\n[Contexto do usuário: ${parts.join(" ")}]\n`;
+  return `\n\n[Contexto relacional — preserve continuidade: ${parts.join(" ")}]\n`;
 }
+
+/**
+ * Detecta contexto emocional e intenção a partir da mensagem do usuário.
+ * Heurística leve — não requer chamada de IA extra.
+ */
+function detectContext(text) {
+  const t = text.toLowerCase();
+  const context = {};
+
+  // Estado emocional
+  if (/dor|incômodo|desconfort|ruim|pior|preocup/.test(t)) context.emotional_state = "ansioso/desconfortável";
+  else if (/bem|melhor|ótimo|bom|tranquil/.test(t)) context.emotional_state = "positivo/tranquilo";
+
+  // Intenção
+  let intent = null;
+  if (/agenda|consulta|marcação|horário/.test(t)) intent = "agendamento";
+  else if (/financeiro|caixa|pagar|receber/.test(t)) intent = "financeiro";
+  else if (/paciente|anamnese|prontuário/.test(t)) intent = "clínico";
+  else if (/equipe|colaborador|usuário/.test(t)) intent = "administrativo";
+  else if (/conhecer|saber|como funciona|mostrar/.test(t)) intent = "descoberta";
+
+  return { context, intent };
+}
+
+module.exports.detectContext = detectContext;
 
 async function _persist(sessionKey, memory) {
   if (!supabase) return;

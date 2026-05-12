@@ -284,10 +284,15 @@ app.post("/chat", async (req, res) => {
 
     const replyText = completion.choices[0].message.content;
 
-    // Persiste no Presence Engine
+    // Persiste no Presence Engine com contexto emocional detectado
     if (presenceEngine && session_key) {
       try {
-        await presenceEngine.append(session_key, "user", text, { profile });
+        const detected = presenceEngine.detectContext ? presenceEngine.detectContext(text) : {};
+        await presenceEngine.append(session_key, "user", text, {
+          profile,
+          intent: detected.intent,
+          context: detected.context,
+        });
         await presenceEngine.append(session_key, "assistant", replyText);
       } catch (e) {
         console.warn("[Presence] append failed:", e.message);

@@ -1,0 +1,11 @@
+{
+  "API_URL": "https://api.sinclin.net/chat",
+  "METHOD": "POST",
+  "HEADERS": {
+    "Content-Type": "application/json"
+  },
+  "BODY_TEMPLATE": {
+    "id": "{{session_id}}",
+    "raw_text": "{{user_input}}"
+  }
+}
