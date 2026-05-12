@@ -213,20 +213,25 @@ app.post("/chat", async (req, res) => {
    Retorna: { ok, text, next_step, structured }
 ===================================== */
 
-app.post("/sioc", (req, res) => {
+app.post("/sioc", async (req, res) => {
   try {
     if (!siocEngine) return res.status(503).json({ ok: false, error: "sioc_offline" });
     const { session_id, raw_text } = req.body || {};
     if (!session_id) return res.status(400).json({ ok: false, error: "session_id obrigatorio" });
-    if (sessionMgr) sessionMgr.getOrCreate(session_id);
-    const result = siocEngine.run({ session_id, input: { raw_text: raw_text || "" } });
+    const session = sessionMgr ? await sessionMgr.getOrCreate(session_id) : null;
+    const result = siocEngine.run({
+      session_id,
+      input: { raw_text: raw_text || "" },
+      current_step: session ? session.sioc_step : "start",
+      current_data: session ? { paciente: session.paciente, anamnese: session.anamnese } : null,
+    });
     if (sessionMgr && result.structured) {
-      sessionMgr.update(session_id, {
+      await sessionMgr.update(session_id, {
         sioc_step: result.next_step,
         paciente: result.structured.paciente || {},
         anamnese: result.structured.anamnese || {}
       });
-      sessionMgr.pushEvent(session_id, { type: "sioc", step: result.next_step });
+      await sessionMgr.pushEvent(session_id, { type: "sioc", step: result.next_step });
     }
     return res.json({
       ok: true,
@@ -245,10 +250,10 @@ app.post("/sioc", (req, res) => {
    SIOC — GET /sioc/:session_id
 ===================================== */
 
-app.get("/sioc/:session_id", (req, res) => {
+app.get("/sioc/:session_id", async (req, res) => {
   try {
     if (!sessionMgr) return res.status(503).json({ ok: false, error: "session_manager_offline" });
-    const session = sessionMgr.get(req.params.session_id);
+    const session = await sessionMgr.get(req.params.session_id);
     if (!session) return res.status(404).json({ ok: false, error: "sessao nao encontrada" });
     return res.json({ ok: true, session, timestamp: new Date().toISOString() });
   } catch (e) {
@@ -273,7 +278,7 @@ app.post("/sioc/device/:type", async (req, res) => {
       message: "Configure a env var SIOC_" + type.toUpperCase() + "_ENABLED=true no Render."
     });
     const device = deviceReg.get(type);
-    if (sessionMgr) sessionMgr.getOrCreate(session_id);
+    if (sessionMgr) await sessionMgr.getOrCreate(session_id);
     let result = {};
     try {
       result = await device.adapter.process({ session_id, data, sessionMgr });
@@ -281,7 +286,7 @@ app.post("/sioc/device/:type", async (req, res) => {
       console.error("[DEVICE:" + type + "]", ae.message);
       return res.status(500).json({ ok: false, error: "adapter_failed" });
     }
-    if (sessionMgr) sessionMgr.setDeviceData(session_id, type, result);
+    if (sessionMgr) await sessionMgr.setDeviceData(session_id, type, result);
     return res.json({ ok: true, device: type, result, timestamp: new Date().toISOString() });
   } catch (e) {
     return res.status(500).json({ ok: false, error: "internal_error" });
