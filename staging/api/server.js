@@ -188,6 +188,7 @@ app.post("/scanner/clinical", async (req, res) => {
     anamnese: `Analise esta anamnese clínica e identifique: padrões relevantes, alertas, hipóteses diagnósticas iniciais, e recomendações de próximos passos. Seja conciso e clínico.`,
     exame: `Analise estes resultados de exame e identifique: valores fora do esperado, correlações relevantes, alertas clínicos, e recomendações. Seja técnico e objetivo.`,
     evolucao: `Analise esta evolução clínica e identifique: progressão, padrões de melhora ou piora, alertas, e sugestões de conduta.`,
+    prontuario: `Analise este prontuário clínico e identifique: histórico relevante, padrões de saúde do paciente, alertas clínicos, pendências e recomendações de acompanhamento.`,
   };
 
   try {
