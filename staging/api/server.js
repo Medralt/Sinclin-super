@@ -172,6 +172,58 @@ app.get("/orchestration", (req, res) => {
 });
 
 /* =====================================
+   CLINICAL SCANNER — POST /scanner/clinical
+   Analisa dados clínicos: anamneses, exames, padrões
+===================================== */
+
+app.post("/scanner/clinical", async (req, res) => {
+  if (!engineOnline || !openaiClient) {
+    return res.status(503).json({ ok: false, error: "engine_offline" });
+  }
+
+  const { data, type = "anamnese", session_key } = req.body || {};
+  if (!data) return res.status(400).json({ ok: false, error: "data is required" });
+
+  const prompts = {
+    anamnese: `Analise esta anamnese clínica e identifique: padrões relevantes, alertas, hipóteses diagnósticas iniciais, e recomendações de próximos passos. Seja conciso e clínico.`,
+    exame: `Analise estes resultados de exame e identifique: valores fora do esperado, correlações relevantes, alertas clínicos, e recomendações. Seja técnico e objetivo.`,
+    evolucao: `Analise esta evolução clínica e identifique: progressão, padrões de melhora ou piora, alertas, e sugestões de conduta.`,
+  };
+
+  try {
+    const systemPrompt = PERSONAS.scanner;
+    const userPrompt = `${prompts[type] || prompts.anamnese}\n\nDados:\n${JSON.stringify(data, null, 2)}`;
+
+    const completion = await openaiClient.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ]
+    });
+
+    const analysis = completion.choices[0].message.content;
+
+    // Salva achado no Supabase se disponível
+    if (supabase) {
+      supabase.from("scanner_findings").insert({
+        scan_type: "clinical",
+        severity: "info",
+        category: type,
+        title: `Análise clínica — ${type}`,
+        description: analysis.slice(0, 500),
+        target: { session_key, type },
+        status: "aberto",
+      }).then(() => {}).catch(() => {});
+    }
+
+    return res.json({ ok: true, analysis, type, timestamp: new Date().toISOString() });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+/* =====================================
    CHAT — POST /chat
    Aceita: { raw_text } ou { text }
    Retorna: { ok, text, engine, timestamp }
