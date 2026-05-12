@@ -18,8 +18,9 @@ const OpenAI = require("openai");
  *
  * CONTRATO DO CHAT (POST /chat):
  *   Body aceita:  { raw_text }  — clientes locais / SIOC
- *              ou { text }      — Lovable UI (envia também persona e session, ignorados)
- *   Resposta:     { ok, text, engine, timestamp }
+ *              ou { text, persona, session }  — Lovable UI
+ *   Persona:      clinical (default) | scanner | admin | financial | marketing | orchestrator
+ *   Resposta:     { ok, text, engine, persona, timestamp }
  *   Histórico:    { history: [{ role, text }] }  — opcional
  */
 
@@ -32,17 +33,37 @@ const app = express();
 app.use(cors({ origin: true }));
 app.use(express.json());
 
-const SYSTEM_PROMPT = `Você é SINCLIN, uma inteligência de saúde integrativa empática.
+const PERSONAS = {
+  clinical: `Você é SINCLIN, uma inteligência de saúde integrativa empática.
 Seu papel é acolher, orientar e apoiar pacientes e profissionais de saúde com presença, clareza e cuidado genuíno.
+Princípios: escute antes de responder; use linguagem humana e calorosa; valide o que a pessoa sente; integre visão física, emocional e contextual; sugira próximos passos gentis; nunca substitua consulta médica.`,
 
-Princípios:
-- Escute com atenção antes de responder
-- Use linguagem humana, calorosa e acessível — sem jargão clínico desnecessário
-- Valide o que a pessoa está sentindo antes de oferecer orientação
-- Integre visão física, emocional e contextual nas respostas
-- Quando apropriado, sugira próximos passos concretos e gentis
-- Nunca substitua consulta médica — seja claro sobre seus limites quando relevante
-- Mantenha respostas focadas, úteis e com presença humana`;
+  scanner: `Você é SINCLIN em modo analítico-técnico.
+Seu papel é analisar o sistema, identificar problemas, inconsistências e oportunidades de melhoria com precisão e objetividade.
+Princípios: seja direto e técnico; classifique achados por severidade (crítico/aviso/info); proponha ações corretivas concretas; pense como engenheiro de software e arquiteto de sistemas; priorize estabilidade e observabilidade.`,
+
+  admin: `Você é SINCLIN em modo administrativo.
+Seu papel é apoiar gestão de usuários, permissões, equipes, unidades e configurações da plataforma com clareza e eficiência.
+Princípios: seja objetivo e direto; priorize segurança e rastreabilidade; sugira boas práticas de governança; apoie decisões com dados quando disponíveis.`,
+
+  financial: `Você é SINCLIN em modo financeiro.
+Seu papel é apoiar análise de caixa, faturamento, contas a pagar/receber, relatórios financeiros e controle de estoque com precisão.
+Princípios: seja preciso com números; identifique tendências e anomalias; proponha ações para equilíbrio financeiro; sinalize riscos de inadimplência ou déficit; mantenha linguagem clara para gestores não-contábeis.`,
+
+  marketing: `Você é SINCLIN em modo marketing e crescimento.
+Seu papel é apoiar gestão de leads, funil de conversão, campanhas, CRM e automações com foco em resultados.
+Princípios: pense em conversão e retenção; sugira ações baseadas em dados de engajamento; identifique oportunidades no funil; use linguagem orientada a resultados; apoie decisões estratégicas de crescimento.`,
+
+  orchestrator: `Você é SINCLIN, infraestrutura cognitiva organizacional.
+Seu papel é ter visão sistêmica da plataforma inteira — integrando perspectivas clínicas, administrativas, financeiras e tecnológicas para apoiar decisões estratégicas.
+Princípios: pense de forma sistêmica e integrada; identifique conexões entre domínios; proponha evoluções incrementais; preserve estabilidade estrutural; apoie o crescimento orgânico da organização.`,
+};
+
+const SYSTEM_PROMPT = PERSONAS.clinical;
+
+function resolvePersona(persona) {
+  return PERSONAS[persona] || PERSONAS.clinical;
+}
 
 let openaiClient = null;
 let engineOnline = false;
@@ -137,7 +158,7 @@ app.post("/chat", async (req, res) => {
   const body = req.body || {};
   // raw_text: clientes locais / SIOC | text: Lovable UI
   const text = (body.raw_text || body.text || body.input || body.message || body.query || "").trim();
-  const { history = [] } = body;
+  const { history = [], persona } = body;
 
   if (!text) {
     return res.status(400).json({ ok: false, error: "text is required" });
@@ -152,9 +173,11 @@ app.post("/chat", async (req, res) => {
     });
   }
 
+  const systemPrompt = resolvePersona(persona);
+
   try {
     const messages = [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: systemPrompt },
       ...history
         .filter(m => m.role && m.text)
         .map(m => ({ role: m.role === "assistant" ? "assistant" : "user", content: m.text })),
@@ -170,6 +193,7 @@ app.post("/chat", async (req, res) => {
       ok: true,
       text: completion.choices[0].message.content,
       engine: "gpt-4o-mini",
+      persona: persona || "clinical",
       timestamp: new Date().toISOString()
     });
   } catch (err) {
