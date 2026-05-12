@@ -233,6 +233,102 @@ app.post("/scanner/clinical", async (req, res) => {
 });
 
 /* =====================================
+   MASTER — Governança e controle de evolução
+   O scanner propõe. O master autoriza. Nada evolui sem aprovação.
+===================================== */
+
+app.get("/master/proposals", async (req, res) => {
+  if (!supabase) return res.json({ ok: true, proposals: [] });
+  try {
+    const { status } = req.query;
+    let query = supabase.from("scanner_proposals").select("*").order("proposed_at", { ascending: false }).limit(200);
+    if (status) query = query.eq("status", status);
+    const { data } = await query;
+    res.json({ ok: true, proposals: data ?? [] });
+  } catch (e) {
+    res.json({ ok: false, error: e.message, proposals: [] });
+  }
+});
+
+app.post("/master/proposals", async (req, res) => {
+  if (!supabase) return res.status(503).json({ ok: false, error: "storage_offline" });
+  const { title, description, type, severity, module: mod, proposed_fix, auto_executable } = req.body || {};
+  if (!title) return res.status(400).json({ ok: false, error: "title is required" });
+  try {
+    const { data, error } = await supabase.from("scanner_proposals").insert({
+      title,
+      description: description || null,
+      type: type || "feature_gap",
+      severity: severity || "medio",
+      module: mod || "unknown",
+      proposed_fix: proposed_fix || null,
+      auto_executable: auto_executable || false,
+      status: "pending",
+      proposed_at: new Date().toISOString(),
+    }).select().single();
+    if (error) throw error;
+    res.json({ ok: true, proposal: data });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.patch("/master/proposals/:id", async (req, res) => {
+  if (!supabase) return res.status(503).json({ ok: false, error: "storage_offline" });
+  const { id } = req.params;
+  const { status, reviewer_notes } = req.body || {};
+  const valid = ["approved", "rejected", "deferred", "executed"];
+  if (!valid.includes(status)) return res.status(400).json({ ok: false, error: "status inválido" });
+  try {
+    const { data, error } = await supabase.from("scanner_proposals").update({
+      status,
+      reviewer_notes: reviewer_notes || null,
+      reviewed_at: new Date().toISOString(),
+    }).eq("id", id).select().single();
+    if (error) throw error;
+    res.json({ ok: true, proposal: data });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.get("/master/stats", async (req, res) => {
+  if (!supabase) return res.json({ ok: true, stats: {} });
+  try {
+    const [findings, proposals, fixes] = await Promise.all([
+      supabase.from("scanner_findings").select("id,severity,status"),
+      supabase.from("scanner_proposals").select("id,status,type,severity,module"),
+      supabase.from("scanner_fixes").select("id,success"),
+    ]);
+    const f = findings.data ?? [];
+    const p = proposals.data ?? [];
+    const x = fixes.data ?? [];
+    res.json({
+      ok: true,
+      stats: {
+        findings: {
+          total: f.length,
+          open: f.filter((i) => i.status === "aberto").length,
+          critical: f.filter((i) => i.severity === "critico" && i.status === "aberto").length,
+        },
+        proposals: {
+          total: p.length,
+          pending: p.filter((i) => i.status === "pending").length,
+          approved: p.filter((i) => i.status === "approved").length,
+          rejected: p.filter((i) => i.status === "rejected").length,
+        },
+        fixes: {
+          total: x.length,
+          success_rate: x.length ? Math.round((x.filter((i) => i.success).length / x.length) * 100) : 0,
+        },
+      },
+    });
+  } catch (e) {
+    res.json({ ok: false, error: e.message, stats: {} });
+  }
+});
+
+/* =====================================
    CHAT — POST /chat
    Aceita: { raw_text } ou { text }
    Retorna: { ok, text, engine, timestamp }
