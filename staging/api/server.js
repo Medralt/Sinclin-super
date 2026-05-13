@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const OpenAI = require("openai");
+const crypto = require("crypto");
 
 /*
  * SINCLIN API — staging/api/server.js
@@ -233,11 +234,34 @@ app.post("/scanner/clinical", async (req, res) => {
 });
 
 /* =====================================
-   MASTER — Governança e controle de evolução
-   O scanner propõe. O master autoriza. Nada evolui sem aprovação.
+   MASTER — Auth e Governança
+   PIN validado no servidor. Token nunca exposto no bundle frontend.
 ===================================== */
 
-app.get("/master/proposals", async (req, res) => {
+// Token derivado do PIN + secret — determinístico, sobrevive restarts
+const MASTER_PIN    = process.env.MASTER_PIN    || "sinclin-master-2024";
+const MASTER_SECRET = process.env.MASTER_SECRET || "sinclin-secret-change-me";
+const MASTER_TOKEN  = crypto.createHmac("sha256", MASTER_SECRET).update(MASTER_PIN).digest("hex");
+
+// Middleware de proteção para todas as rotas /master/*
+function requireMaster(req, res, next) {
+  const auth = req.headers["authorization"] || "";
+  if (auth === `Bearer ${MASTER_TOKEN}`) return next();
+  return res.status(401).json({ ok: false, error: "Acesso negado. PIN inválido ou ausente." });
+}
+
+// POST /master/auth — valida PIN, retorna token de sessão
+app.post("/master/auth", (req, res) => {
+  const { pin } = req.body || {};
+  if (!pin) return res.status(400).json({ ok: false, error: "PIN obrigatório." });
+  const attempt = crypto.createHmac("sha256", MASTER_SECRET).update(pin).digest("hex");
+  if (attempt !== MASTER_TOKEN) {
+    return res.status(401).json({ ok: false, error: "PIN incorreto." });
+  }
+  res.json({ ok: true, token: MASTER_TOKEN });
+});
+
+app.get("/master/proposals", requireMaster, async (req, res) => {
   if (!supabase) return res.json({ ok: true, proposals: [] });
   try {
     const { status } = req.query;
@@ -250,7 +274,7 @@ app.get("/master/proposals", async (req, res) => {
   }
 });
 
-app.post("/master/proposals", async (req, res) => {
+app.post("/master/proposals", requireMaster, async (req, res) => {
   if (!supabase) return res.status(503).json({ ok: false, error: "storage_offline" });
   const { title, description, type, severity, module: mod, proposed_fix, auto_executable } = req.body || {};
   if (!title) return res.status(400).json({ ok: false, error: "title is required" });
@@ -273,7 +297,7 @@ app.post("/master/proposals", async (req, res) => {
   }
 });
 
-app.patch("/master/proposals/:id", async (req, res) => {
+app.patch("/master/proposals/:id", requireMaster, async (req, res) => {
   if (!supabase) return res.status(503).json({ ok: false, error: "storage_offline" });
   const { id } = req.params;
   const { status, reviewer_notes } = req.body || {};
@@ -292,7 +316,7 @@ app.patch("/master/proposals/:id", async (req, res) => {
   }
 });
 
-app.get("/master/stats", async (req, res) => {
+app.get("/master/stats", requireMaster, async (req, res) => {
   if (!supabase) return res.json({ ok: true, stats: {} });
   try {
     const [findings, proposals, fixes] = await Promise.all([
