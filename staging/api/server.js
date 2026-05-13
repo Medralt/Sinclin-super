@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const OpenAI = require("openai");
 const crypto = require("crypto");
+const { createClient } = require("@supabase/supabase-js");
 
 /*
  * SINCLIN API — staging/api/server.js
@@ -104,6 +105,17 @@ try {
   console.log("[SINCLIN] OpenAI engine online");
 } catch (err) {
   console.warn("[SINCLIN] OpenAI engine offline:", err.message);
+}
+
+let supabase = null;
+try {
+  const sbUrl = process.env.SUPABASE_URL;
+  const sbKey = process.env.SUPABASE_KEY;
+  if (!sbUrl || !sbKey) throw new Error("SUPABASE_URL ou SUPABASE_KEY não definidos");
+  supabase = createClient(sbUrl, sbKey);
+  console.log("[SINCLIN] Supabase client online");
+} catch (err) {
+  console.warn("[SINCLIN] Supabase offline:", err.message);
 }
 
 /* =====================================
