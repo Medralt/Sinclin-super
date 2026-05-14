@@ -1,5 +1,5 @@
 # SINCLIN — Status de Implementação
-**Versão:** 2.2 | **Atualizado:** 2026-05-14
+**Versão:** 2.3 | **Atualizado:** 2026-05-14
 
 ---
 
@@ -10,6 +10,7 @@
 | ✅ | Implementado e funcional |
 | 🔶 | Parcialmente implementado |
 | 🔴 | Stub — "Em implementação" (MarketingShell) |
+| ⚠️ | Ativo mas com ressalva |
 | ⬜ | Pendente / não iniciado |
 
 ---
@@ -20,10 +21,25 @@
 |---|---|---|
 | Login email/senha (Supabase Auth) | ✅ | signIn + signUp via localDb |
 | Registro com confirmação por e-mail | ✅ | Supabase email confirmation flow |
-| AuthGuard (proteção de rotas) | ✅ | Redireciona /welcome sem sessão |
+| AuthGuard (proteção de rotas) | ⚠️ | **Temporariamente desativado** — pass-through direto ao Dashboard |
 | Seleção de perfil (professional/collaborator/prospect) | ✅ | Persiste em localStorage |
 | Confirmação por SMS / 2FA | ⬜ | Aguarda provider Twilio |
-| Controle de perfis/roles no Supabase | ⬜ | metadata.role salvo no signUp, RLS pendente |
+
+---
+
+## Módulo: Layout e Navegação
+
+| Funcionalidade | Estado | Notas |
+|---|---|---|
+| GlobalHeader (tarja superior) | ✅ | Logo + pesquisa por módulo + índices econômicos |
+| TopNav (menu principal) | ✅ | Filtrado por perfil professional/collaborator |
+| Módulo Fiscal no menu | ✅ | Substituiu Administrativo |
+| Marketing visível em todos os perfis | ✅ | |
+| Margem/DRE no Financeiro | ✅ | |
+| Serviços/Pacotes/Comissões/Fiscal/Custos no Configurações | ✅ | |
+| Equipe migrada para Clínico | ✅ | |
+| Usuários/Permissões/Unidades migrados para Configurações | ✅ | |
+| AppSidebar | ⚠️ | Arquivo existe mas **não está em uso** (AppLayout usa TopNav) |
 
 ---
 
@@ -31,7 +47,7 @@
 
 | Rota | Componente | Estado | Notas |
 |---|---|---|---|
-| `/clinico/agenda` | ClinicalAgenda | ✅ | Agenda funcional |
+| `/clinico/agenda` | ClinicalAgenda | ✅ | |
 | `/clinico/atendimentos` | ClinicalAgenda | ✅ | Alias de agenda |
 | `/clinico/procedimentos` | ClinicalProcedimentos | ✅ | |
 | `/clinico/evolucao` | ClinicalEvolucao | ✅ | |
@@ -45,14 +61,14 @@
 
 | Rota | Componente | Estado | Notas |
 |---|---|---|---|
-| `/pacientes` | Patients | ✅ | Lista de pacientes |
-| `/pacientes/:id` | PatientView360 | ✅ | Visão 360 do paciente |
+| `/pacientes` | Patients | ✅ | |
+| `/pacientes/:id` | PatientView360 | ✅ | Visão 360 |
 | `/pacientes/cadastro` | PatientCadastro | ✅ | |
 | `/pacientes/historico` | PatientHistorico | ✅ | |
 | `/pacientes/documentos` | PatientDocumentos | ✅ | |
 | `/pacientes/anamnese` | PatientAnamnese | ✅ | SIOC integrado |
-| `/pacientes/cuidados` | PatientCare | ✅ | Pós-procedimento |
-| `/pacientes/fotos` | MarketingShell | 🔴 | Fotos clínicas com comparativo temporal |
+| `/pacientes/cuidados` | PatientCare | ✅ | Pós-procedimento com TTS proativo |
+| `/pacientes/fotos` | MarketingShell | 🔴 | Fotos clínicas — severity: medio |
 
 ---
 
@@ -60,12 +76,26 @@
 
 | Rota | Componente | Estado | Notas |
 |---|---|---|---|
-| `/financeiro` | Financial | ✅ | Visão geral |
+| `/financeiro` | Financial | ✅ | Contas a Receber |
 | `/financeiro/caixa` | FinancialCaixa | ✅ | |
 | `/financeiro/faturamento` | FinancialFaturamento | ✅ | |
 | `/financeiro/pagar` | FinancialPagar | ✅ | |
+| `/financeiro/margem` | FinanceiroMargem | ✅ | DRE simplificado por serviço |
 | `/financeiro/relatorios` | FinancialRelatorios | ✅ | |
 | `/financeiro/convenios` | FinancialConvenios | ✅ | |
+
+---
+
+## Módulo: Fiscal (novo — mai/2026)
+
+| Rota | Componente | Estado | Notas |
+|---|---|---|---|
+| `/fiscal` | FiscalDashboard | ✅ | Aba Vencimentos: agrega a pagar + receber + fiscal + ANVISA + licenças |
+| `/fiscal/nfse` | FiscalDashboard | 🔴 | NFS-e — severity: alto |
+| `/fiscal/impostos` | FiscalDashboard | 🔴 | Apuração ISS/PIS/COFINS/IRPJ — severity: alto |
+| `/fiscal/anvisa` | FiscalDashboard | 🔴 | Registros ANVISA — severity: alto |
+| `/fiscal/vigilancia` | FiscalDashboard | 🔴 | Vigilância Sanitária — severity: medio |
+| `/fiscal/auditoria` | FiscalDashboard | 🔴 | Auditoria e logs — severity: medio |
 
 ---
 
@@ -73,7 +103,7 @@
 
 | Rota | Componente | Estado | Notas |
 |---|---|---|---|
-| `/marketing` | MarketingOverview | ✅ | Visão geral |
+| `/marketing` | MarketingOverview | ✅ | |
 | `/marketing/leads` | MarketingLeads | ✅ | |
 | `/marketing/funil` | MarketingFunil | ✅ | |
 | `/marketing/crm` | MarketingCrm | ✅ | |
@@ -87,37 +117,15 @@
 
 ---
 
-## Módulo: Administrativo
-
-| Rota | Componente | Estado | Notas |
-|---|---|---|---|
-| `/admin/usuarios` | AdminUsuarios | ✅ | |
-| `/admin/permissoes` | AdminPermissoes | ✅ | |
-| `/admin/unidades` | AdminUnidades | ✅ | |
-| `/admin/equipe` | AdminEquipe | ✅ | |
-| `/admin/logs` | AdminLogs | ✅ | |
-| `/admin/auditoria` | AdminAuditoria | ✅ | |
-
----
-
-## Módulo: Conhecimento
-
-| Rota | Componente | Estado | Notas |
-|---|---|---|---|
-| `/conhecimento` | KnowledgeLibrary | ✅ | |
-| `/conhecimento/biblioteca` | KnowledgeLibrary | ✅ | |
-| `/conhecimento/protocolos` | ClinicalProtocols | ✅ | |
-| `/conhecimento/ia` | KnowledgeAssistant | ✅ | |
-| `/conhecimento/treinamentos` | MarketingShell | 🔴 | severity: medio |
-| `/conhecimento/documentacao` | MarketingShell | 🔴 | severity: medio |
-| `/conhecimento/faq` | MarketingShell | 🔴 | severity: medio |
-
----
-
 ## Módulo: Configurações
 
 | Rota | Componente | Estado | Notas |
 |---|---|---|---|
+| `/config/servicos` | ConfigServicos | ✅ | Catálogo com insumos + depreciação de ativos |
+| `/config/pacotes` | ConfigPacotes | ✅ | Pacotes de serviços |
+| `/config/comissoes` | ConfigComissoes | ✅ | Regras (gross/net_tax/net_supplies/net_all) |
+| `/config/fiscal` | ConfigFiscal | ✅ | Regras de impostos |
+| `/config/custos` | ConfigCustos | ✅ | Custos operacionais com rateio |
 | `/config/preferencias` | MarketingShell | 🔴 | severity: alto |
 | `/config/integracoes` | MarketingShell | 🔴 | severity: medio |
 | `/config/api` | MarketingShell | 🔴 | severity: baixo |
@@ -127,16 +135,27 @@
 
 ---
 
+## Módulo: Conhecimento
+
+| Rota | Componente | Estado | Notas |
+|---|---|---|---|
+| `/conhecimento/biblioteca` | KnowledgeLibrary | ✅ | |
+| `/conhecimento/protocolos` | ClinicalProtocols | ✅ | |
+| `/conhecimento/ia` | KnowledgeAssistant | ✅ | |
+| `/conhecimento/treinamentos` | MarketingShell | 🔴 | severity: medio |
+| `/conhecimento/documentacao` | MarketingShell | 🔴 | severity: medio |
+| `/conhecimento/faq` | MarketingShell | 🔴 | severity: medio |
+
+---
+
 ## Módulo: Centro de Análise
 
 | Funcionalidade | Estado | Notas |
 |---|---|---|
-| Aba Scanner (runtime) | ✅ | Detecta erros de runtime, componentes com stub |
-| Aba Achados | ✅ | Lista findings da tabela `scanner_findings` |
-| Aba Governança | ✅ | PIN master → fila de propostas (aprovar/rejeitar/adiar) |
-| Scanner de completude | ✅ | Gera 17 propostas a partir de `stubRoutes.ts` |
-| Submissão de propostas para Supabase | ✅ | POST /master/proposals com auth Bearer |
-| Aprovação/rejeição/adiamento | ✅ | PATCH /master/proposals/:id |
+| Scanner de runtime | ✅ | |
+| Achados | ✅ | Tabela `scanner_findings` |
+| Governança / propostas | ✅ | PIN master → fila de aprovação |
+| Scanner de completude | ✅ | Gera propostas de stubRoutes.ts |
 
 ---
 
@@ -144,91 +163,93 @@
 
 | Funcionalidade | Estado | Notas |
 |---|---|---|
-| Chat IA universal (SinclinChat) | ✅ | 7 personas via OpenAI GPT-4o-mini |
-| TTS (Web Speech API) | ✅ | Briefing matinal por voz no Dashboard |
-| VoicePresence (orb animado) | ✅ | Componente de presença de voz |
-| Comandos de voz (useVoice) | ✅ | |
-| Sessões SIOC (anamnese guiada) | ✅ | Tabela `sioc_sessions` |
-| Memória longitudinal | ✅ | Tabela `presence_memory` |
+| Chat IA (SinclinChat) | ✅ | 8 personas via **Anthropic Claude Haiku 4.5** |
+| Presence Engine | ✅ | Memória longitudinal por session_key via Supabase `presence_memory` |
+| Detecção de contexto emocional | ✅ | Heurística leve em presence.engine.js |
+| TTS pt-BR (Web Speech API) | ✅ | |
+| VoicePresence (orb animado) | ✅ | |
+| Comandos de voz | ✅ | 16+ rotas de navegação |
+| SIOC (anamnese guiada) | ✅ | State machine com persistência |
+| Welcome ritual (/welcome) | ✅ | |
+| ProspectExperience (/prospect) | ✅ | |
+| PatientCare (/pacientes/cuidados) | ✅ | TTS proativo |
 
 ---
 
-## Backend (API)
+## Backend (API) — staging/api/server.js
 
 | Endpoint | Estado | Notas |
 |---|---|---|
-| `POST /chat` | ✅ | Chat com persona selecionada |
-| `POST /master/auth` | ✅ | Valida PIN, retorna token HMAC |
-| `GET /master/proposals` | ✅ | Lista propostas (requer token) |
-| `POST /master/proposals` | ✅ | Submete propostas (requer token) |
-| `PATCH /master/proposals/:id` | ✅ | Aprova/rejeita/adia (requer token) |
-| `GET /master/stats` | ✅ | Estatísticas (requer token) |
-| Supabase client inicializado | ✅ | Requer SUPABASE_URL + SUPABASE_KEY em prod |
+| `POST /chat` | ✅ | Claude Haiku, personas, Presence Engine |
+| `POST /scanner/clinical` | ✅ | Claude Vision para análise clínica |
+| `POST /sioc/device/facial_scanner` | ✅ | Scanner de beleza → Claude Vision → facial_analysis |
+| `POST /sioc` | ✅ | Anamnese guiada |
+| `GET /sioc/:session_id` | ✅ | Leitura de sessão |
+| `GET /health`, `/scanner`, `/runtime`, `/orchestration` | ✅ | |
+| `POST /master/auth` | ✅ | PIN → token HMAC |
+| `GET/POST/PATCH /master/proposals` | ✅ | Governança de propostas |
+| `GET /master/stats` | ✅ | Estatísticas |
 
 ---
 
-## Projetos Supabase — Decisão Definitiva (2026-05-14)
+## Dispositivos / Instrumentos Externos
 
-| Projeto | Status | Decisão |
+| Dispositivo | Adapter | Estado | Notas |
+|---|---|---|---|
+| facial_scanner | `facial_scanner.adapter.js` | ✅ | HTTP Request Shortcuts (Android) → Claude Vision → `facial_analysis` |
+| diagnostico | `diagnostico.adapter.js` | 🔶 | Adapter existe, sem env flag ativa |
+| camera | `camera.adapter.js` | 🔶 | Adapter existe, sem env flag ativa |
+| pagamento | `pagamento.adapter.js` | 🔶 | Adapter existe, sem env flag ativa |
+| prontuario | `prontuario.adapter.js` | 🔶 | Adapter existe, sem env flag ativa |
+| iot | `iot.adapter.js` | 🔶 | Adapter existe, sem env flag ativa |
+
+---
+
+## Migrations Supabase
+
+| Arquivo | Estado |
+|---|---|
+| `docs/migrations/ALL_FASE1.sql` | ✅ Executado |
+| `docs/migrations/presence_memory_schema.sql` | ⬜ **Pendente** |
+| `docs/migrations/facial_analysis.sql` | ⬜ **Pendente** |
+
+---
+
+## Env Vars Pendentes no Render
+
+| Serviço | Chave | Estado |
 |---|---|---|
-| `gbulvsjcufyyscgzlsrt` — Sinclin | ACTIVE_HEALTHY | ✅ **ÚNICO projeto oficial** — schema completo, na conta principal |
-| `ufdeaqfblrrsjuvwiqig` — sinclin_ia | INACTIVE | 🗑️ Pode ser deletado — experimento pausado |
-| `ucduacwytvghkhnselux` — (legado) | Ativo (outra conta) | 🚫 Não usar — era o projeto antigo, pertence a conta diferente |
-
-## Pendências de Configuração (ação manual necessária)
-
-| Item | Responsável | Estado |
-|---|---|---|
-| Render frontend: `VITE_SUPABASE_URL=https://gbulvsjcufyyscgzlsrt.supabase.co` | Usuário/Render dashboard | ⬜ **CRÍTICO** |
-| Render frontend: `VITE_SUPABASE_PUBLISHABLE_KEY` (anon key do `gbulvsjcufyyscgzlsrt`) | Usuário/Render dashboard | ⬜ **CRÍTICO** |
-| Render backend: `SUPABASE_URL=https://gbulvsjcufyyscgzlsrt.supabase.co` | Usuário/Render dashboard | ⬜ |
-| Render backend: `SUPABASE_KEY` (service role key do `gbulvsjcufyyscgzlsrt`) | Usuário/Render dashboard | ⬜ |
-| Render: vars `MASTER_PIN`, `MASTER_SECRET` no API service | Usuário/Render dashboard | ⬜ |
-| Supabase `gbulvsjcufyyscgzlsrt`: Site URL = `https://app.sinclin.net` | Usuário/Supabase dashboard | ⬜ |
-| Supabase `gbulvsjcufyyscgzlsrt`: Redirect URL = `https://app.sinclin.net/**` | Usuário/Supabase dashboard | ⬜ |
-| Provider SMS / Twilio para 2FA | Usuário | ⬜ |
+| sinclin-runtime | `ANTHROPIC_API_KEY` | ⬜ **CRÍTICO** |
+| sinclin-runtime | `SUPABASE_URL` | ⬜ **CRÍTICO** |
+| sinclin-runtime | `SUPABASE_SERVICE_ROLE_KEY` | ⬜ **CRÍTICO** |
+| sinclin-runtime | `SIOC_FACIAL_SCANNER_ENABLED=true` | ⬜ |
+| sinclin-runtime | `MASTER_PIN` | ⬜ |
+| sinclin-runtime | `MASTER_SECRET` | ⬜ |
+| sinclin-fente (frontend) | `VITE_SUPABASE_URL` | ⬜ |
+| sinclin-fente (frontend) | `VITE_SUPABASE_PUBLISHABLE_KEY` | ⬜ |
 
 ---
 
----
-
-## Módulo: Serviços, Comissionamento e Fiscal (Fase 1 — planejado)
-
-**Referência completa:** `docs/SERVICE_MODEL.md`
+## Módulo: Serviços, Comissionamento e Fiscal (Fase 1)
 
 | Funcionalidade | Estado | Notas |
 |---|---|---|
-| Multi-tenant (`clinic_id` + RLS) | ⬜ | Fundação de toda a Fase 1 |
-| `tenant_config` (plano, fiscal, comissão) | ⬜ | |
-| Especialidades configuráveis por tenant | ⬜ | Substitui categorias fixas |
-| Catálogo de serviços | ⬜ | `/config/servicos` |
-| Insumos por serviço (vínculo estoque) | ⬜ | |
-| Ativos/equipamentos + depreciação | ⬜ | Custo-hora automático |
-| Pacotes de serviços | ⬜ | `/config/pacotes` |
-| Regras de comissão | ⬜ | `/config/comissoes` |
-| Taxas e impostos por especialidade | ⬜ | `/config/fiscal` |
-| Custos operacionais com rateio | ⬜ | `/config/custos` |
-| Circuito financeiro completo | ⬜ | Lançamentos automáticos |
-| Relatórios de margem líquida real | ⬜ | DRE simplificado |
+| Multi-tenant (clinic_id + RLS) | ✅ | ALL_FASE1.sql executado |
+| Catálogo de serviços | ✅ | ConfigServicos — insumos + ativos |
+| Pacotes de serviços | ✅ | ConfigPacotes |
+| Regras de comissão | ✅ | ConfigComissoes (4 bases) |
+| Regras de impostos | ✅ | ConfigFiscal |
+| Custos operacionais | ✅ | ConfigCustos |
+| DRE simplificado | ✅ | FinanceiroMargem |
+| Circuito financeiro completo (lançamentos automáticos) | ⬜ | Fase 2 |
 
 ---
 
 ## Produto SaaS (Fase 4 — planejado)
 
-**Referência completa:** `docs/PRODUCT.md`
-
-| Funcionalidade | Estado | Notas |
+| Plano | Preço | Estado |
 |---|---|---|
-| Planos: Essencial / Clínico / Pro / Enterprise | ⬜ | R$ 249 / 499 / 899 / 1.799 |
-| Enforcement de plano no código | ⬜ | Feature flags por `tenant_config.plan` |
-| Onboarding wizard por tenant | ⬜ | |
-| Billing / assinaturas | ⬜ | Stripe ou similar |
-| Portal de gestão de tenants | ⬜ | |
-
----
-
-## Contagem de Stubs (gerado de stubRoutes.ts)
-
-- **Total de rotas stub:** 17
-- **Por severidade:** crítico: 0 · alto: 9 · médio: 7 · baixo: 1  
-- **Por módulo:** marketing: 7 · config: 6 · knowledge: 3 · clinical: 1
+| Essencial | R$ 249/mês | ⬜ |
+| Clínico | R$ 499/mês | ⬜ |
+| Pro | R$ 899/mês | ⬜ |
+| Enterprise | R$ 1.799/mês | ⬜ |

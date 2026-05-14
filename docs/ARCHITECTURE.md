@@ -26,11 +26,15 @@
 - **Deploy trigger:** push para `main` → Render auto-deploy
 
 ### Backend (`staging/api/server.js`)
-- **Runtime:** Node.js 24 + Express
-- **IA:** OpenAI GPT-4o-mini (personas: clinical, scanner, admin, financial, marketing, orchestrator, patient_care)
-- **DB:** Supabase (`@supabase/supabase-js` via service/anon key)
+- **Runtime:** Node.js + Express
+- **IA:** Anthropic Claude Haiku 4.5 (`claude-haiku-4-5-20251001`) — substituiu OpenAI GPT-4o-mini em mai/2026
+- **Personas (8):** clinical · scanner · admin · financial · marketing · orchestrator · prospect · patient_care
+- **Presence Engine:** `staging/api/presence.engine.js` — memória longitudinal por `session_key` via Supabase `presence_memory`
+- **Device adapters:** `staging/api/adapters/` — padrão de plugin para instrumentos externos (facial_scanner, diagnostico, camera, iot...)
+- **DB:** Supabase (`@supabase/supabase-js` via `SUPABASE_SERVICE_ROLE_KEY`)
 - **Auth master:** HMAC-SHA256 (PIN + secret → token de sessão)
 - **Deploy trigger:** push para `main` em Sinclin-super → Render auto-deploy
+- **ATENÇÃO:** `api/server.js` (raiz) é stub vazio — o servidor real é `staging/api/server.js`
 
 ### Banco de Dados
 - **Plataforma:** Supabase (PostgreSQL)
