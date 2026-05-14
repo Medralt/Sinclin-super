@@ -245,6 +245,73 @@ app.post("/scanner/clinical", async (req, res) => {
 });
 
 /* =====================================
+   FACIAL SCANNER — POST /sioc/device/facial_scanner
+   Recebe imagem do HTTP Request Shortcuts (multipart ou base64 JSON)
+   Usa Claude Vision para extrair dados estruturados
+===================================== */
+
+app.post("/sioc/device/facial_scanner", async (req, res) => {
+  try {
+    const contentType = req.headers["content-type"] || "";
+    let image_base64 = null;
+    let image_type = "image/jpeg";
+    let paciente = null;
+    let session_id = null;
+
+    if (contentType.includes("application/json")) {
+      // Caminho JSON: { image_base64, image_type, paciente, session_id }
+      image_base64 = req.body.image_base64 || req.body.imagem;
+      image_type   = req.body.image_type || "image/jpeg";
+      paciente     = req.body.paciente;
+      session_id   = req.body.session_id || req.body.paciente || "sem_sessao";
+    } else {
+      // Caminho multipart (HTTP Request Shortcuts com arquivo compartilhado)
+      // Lê o raw body como buffer e converte para base64
+      return res.status(400).json({
+        ok: false,
+        error: "Envie Content-Type: application/json com image_base64",
+        instrucao: "No HTTP Request Shortcuts: use tipo de corpo JSON e converta a imagem para base64, ou use a variável {shared_image_base64} no corpo."
+      });
+    }
+
+    if (!image_base64) {
+      return res.status(400).json({ ok: false, error: "image_base64 obrigatorio" });
+    }
+
+    // Remove prefixo data URI se presente (ex: data:image/jpeg;base64,...)
+    if (image_base64.includes(",")) {
+      const parts = image_base64.split(",");
+      const mime  = parts[0].match(/data:([^;]+)/);
+      if (mime) image_type = mime[1];
+      image_base64 = parts[1];
+    }
+
+    const adapter = require("./adapters/facial_scanner.adapter");
+    const result  = await adapter.process({
+      session_id,
+      data: { image_base64, image_type, paciente },
+      sessionMgr
+    });
+
+    // Salva no Supabase se disponível
+    if (supabase) {
+      supabase.from("facial_analysis").insert({
+        paciente:    paciente || null,
+        session_id:  session_id || null,
+        dados:       result.dados,
+        analisado_em: result.analisado_em,
+        clinic_id:   "00000000-0000-0000-0000-000000000001",
+      }).then(() => {}).catch((e) => console.warn("[facial_scanner] supabase insert:", e.message));
+    }
+
+    return res.json({ ok: true, resultado: result, timestamp: new Date().toISOString() });
+  } catch (err) {
+    console.error("[FACIAL_SCANNER_ERROR]", err.message);
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+/* =====================================
    MASTER — Auth e Governança
    PIN validado no servidor. Token nunca exposto no bundle frontend.
 ===================================== */

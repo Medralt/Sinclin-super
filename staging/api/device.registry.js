@@ -1,9 +1,10 @@
 const CATALOG = [
-  { type: "diagnostico", label: "Aparelho de diagnostico", env_flag: "SIOC_DIAGNOSTICO_ENABLED", adapter: "./adapters/diagnostico.adapter" },
-  { type: "camera",      label: "Camera / Luz de Wood",    env_flag: "SIOC_CAMERA_ENABLED",      adapter: "./adapters/camera.adapter"      },
-  { type: "pagamento",   label: "Maquininha de cobranca",  env_flag: "SIOC_PAGAMENTO_ENABLED",   adapter: "./adapters/pagamento.adapter"   },
-  { type: "prontuario",  label: "Prontuario HIS/FHIR",     env_flag: "SIOC_PRONTUARIO_ENABLED",  adapter: "./adapters/prontuario.adapter"  },
-  { type: "iot",         label: "Sensores / Wearables",    env_flag: "SIOC_IOT_ENABLED",         adapter: "./adapters/iot.adapter"         }
+  { type: "diagnostico",     label: "Aparelho de diagnostico",   env_flag: "SIOC_DIAGNOSTICO_ENABLED",     adapter: "./adapters/diagnostico.adapter"     },
+  { type: "camera",          label: "Camera / Luz de Wood",      env_flag: "SIOC_CAMERA_ENABLED",          adapter: "./adapters/camera.adapter"          },
+  { type: "pagamento",       label: "Maquininha de cobranca",    env_flag: "SIOC_PAGAMENTO_ENABLED",       adapter: "./adapters/pagamento.adapter"       },
+  { type: "prontuario",      label: "Prontuario HIS/FHIR",       env_flag: "SIOC_PRONTUARIO_ENABLED",      adapter: "./adapters/prontuario.adapter"      },
+  { type: "iot",             label: "Sensores / Wearables",      env_flag: "SIOC_IOT_ENABLED",             adapter: "./adapters/iot.adapter"             },
+  { type: "facial_scanner",  label: "Scanner de Beleza Facial",  env_flag: "SIOC_FACIAL_SCANNER_ENABLED",  adapter: "./adapters/facial_scanner.adapter"  }
 ];
 const registry = new Map();
 function load() {
