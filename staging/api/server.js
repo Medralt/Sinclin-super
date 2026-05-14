@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const OpenAI = require("openai");
+const Anthropic = require("@anthropic-ai/sdk");
 const crypto = require("crypto");
 const { createClient } = require("@supabase/supabase-js");
 
@@ -94,17 +94,17 @@ function resolvePersona(persona) {
   return PERSONAS[persona] || PERSONAS.clinical;
 }
 
-let openaiClient = null;
+let anthropic = null;
 let engineOnline = false;
 
 try {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error("OPENAI_API_KEY not set");
-  openaiClient = new OpenAI({ apiKey });
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY not set");
+  anthropic = new Anthropic({ apiKey });
   engineOnline = true;
-  console.log("[SINCLIN] OpenAI engine online");
+  console.log("[SINCLIN] Anthropic engine online (claude-haiku-4-5)");
 } catch (err) {
-  console.warn("[SINCLIN] OpenAI engine offline:", err.message);
+  console.warn("[SINCLIN] Anthropic engine offline:", err.message);
 }
 
 let supabase = null;
@@ -130,7 +130,7 @@ app.get("/health", (req, res) => {
   res.json({
     ok: true,
     status: "online",
-    engine: engineOnline ? "gpt-4o-mini" : "offline",
+    engine: engineOnline ? "claude-haiku-4-5" : "offline",
     sioc: siocEngine ? "online" : "offline",
     session_manager: sessionMgr ? "online" : "offline",
     devices: deviceReg ? deviceReg.list() : [],
@@ -150,7 +150,7 @@ app.get("/scanner", (req, res) => {
     runtime: {
       uptime: process.uptime(),
       memory: process.memoryUsage(),
-      engine: engineOnline ? "gpt-4o-mini" : "offline",
+      engine: engineOnline ? "claude-haiku-4-5" : "offline",
       sioc: siocEngine ? "online" : "offline",
       sessions: sessionMgr ? sessionMgr.stats() : null,
       devices: deviceReg ? deviceReg.list() : []
@@ -198,7 +198,7 @@ app.get("/orchestration", (req, res) => {
 ===================================== */
 
 app.post("/scanner/clinical", async (req, res) => {
-  if (!engineOnline || !openaiClient) {
+  if (!engineOnline || !anthropic) {
     return res.status(503).json({ ok: false, error: "engine_offline" });
   }
 
@@ -216,15 +216,14 @@ app.post("/scanner/clinical", async (req, res) => {
     const systemPrompt = PERSONAS.scanner;
     const userPrompt = `${prompts[type] || prompts.anamnese}\n\nDados:\n${JSON.stringify(data, null, 2)}`;
 
-    const completion = await openaiClient.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ]
+    const completion = await anthropic.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 1024,
+      system: systemPrompt,
+      messages: [{ role: "user", content: userPrompt }]
     });
 
-    const analysis = completion.choices[0].message.content;
+    const analysis = completion.content[0].text;
 
     // Salva achado no Supabase se disponível
     if (supabase) {
@@ -380,7 +379,7 @@ app.post("/chat", async (req, res) => {
     return res.status(400).json({ ok: false, error: "text is required" });
   }
 
-  if (!engineOnline || !openaiClient) {
+  if (!engineOnline || !anthropic) {
     return res.status(503).json({
       ok: false,
       text: "Motor de IA temporariamente indisponível.",
@@ -413,17 +412,18 @@ app.post("/chat", async (req, res) => {
 
   try {
     const messages = [
-      { role: "system", content: systemPrompt },
       ...historyMessages,
       { role: "user", content: text }
     ];
 
-    const completion = await openaiClient.chat.completions.create({
-      model: "gpt-4o-mini",
+    const completion = await anthropic.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 1024,
+      system: systemPrompt,
       messages
     });
 
-    const replyText = completion.choices[0].message.content;
+    const replyText = completion.content[0].text;
 
     // Persiste no Presence Engine com contexto emocional detectado
     if (presenceEngine && session_key) {
@@ -443,7 +443,7 @@ app.post("/chat", async (req, res) => {
     return res.json({
       ok: true,
       text: replyText,
-      engine: "gpt-4o-mini",
+      engine: "claude-haiku-4-5",
       persona: persona || "clinical",
       presence: !!presenceMemory,
       timestamp: new Date().toISOString()
