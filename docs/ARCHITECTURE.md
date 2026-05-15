@@ -1,5 +1,5 @@
 # SINCLIN — Arquitetura Atual
-**Versão:** 2.2 | **Atualizado:** 2026-05-14
+**Versão:** 2.3 | **Atualizado:** 2026-05-15
 
 ---
 
@@ -82,14 +82,16 @@ tenant (clinic_id)
 
 | Tabela | Descrição | Status |
 |---|---|---|
-| `patients` | Cadastro de pacientes | ativo |
+| `patients` | Cadastro de pacientes — 33 colunas: core + AVEC + permissões + custom_fields (jsonb) + rastreabilidade de importação | ativo |
+| `form_configs` | Campos configuráveis por formulário por tenant (field_key, label, type, options, required, visible, order, section) | ativo |
+| `facial_analysis` | Resultados do scanner de beleza facial (dados jsonb + patient_id + session_id) | ativo |
 | `appointments` | Agendamentos | ativo |
 | `financial_records` | Lançamentos financeiros | ativo |
 | `scanner_findings` | Achados do scanner de runtime | ativo |
 | `scanner_fixes` | Histórico de correções executadas | ativo |
 | `scanner_proposals` | Propostas de evolução (governança) | ativo |
 | `sioc_sessions` | Sessões de anamnese guiada (SIOC) | ativo |
-| `presence_memory` | Memória longitudinal de presença | ativo |
+| `presence_memory` | Memória longitudinal de presença (session_key único, context jsonb, messages jsonb) | ativo |
 
 ### Tabelas Planejadas — Módulo de Serviços (Fase 1)
 
@@ -122,12 +124,13 @@ VITE_SUPABASE_PUBLISHABLE_KEY
 
 ### Backend (Render env vars — nunca em repositório)
 ```
-OPENAI_API_KEY
-SUPABASE_URL
-SUPABASE_KEY
-MASTER_PIN          ← PIN do master (obrigatório definir em produção)
-MASTER_SECRET       ← secret HMAC (obrigatório definir em produção)
-MASTER_PHONE        ← celular para 2FA SMS (futuro)
+ANTHROPIC_API_KEY           ← Claude Haiku 4.5 (substituiu OPENAI_API_KEY em mai/2026)
+SUPABASE_URL                ← https://gbulvsjcufyyscgzlsrt.supabase.co
+SUPABASE_SERVICE_ROLE_KEY   ← service role (não anon) — necessário para upsert em presence_memory
+MASTER_PIN                  ← PIN do master (obrigatório definir em produção)
+MASTER_SECRET               ← secret HMAC (obrigatório definir em produção)
+MASTER_PHONE                ← celular para 2FA SMS (futuro)
+SIOC_FACIAL_SCANNER_ENABLED ← true para ativar adapter de scanner de beleza
 ```
 
 ---
@@ -151,21 +154,32 @@ src/
 │   └── engineering.ts   ← EngineeringConsole
 │
 ├── components/
-│   ├── AppLayout.tsx    ← Layout raiz com Sidebar + TopNav
-│   ├── AppSidebar.tsx   ← Sidebar filtrada por perfil
-│   ├── TopNav.tsx       ← Nav filtrado por perfil
-│   ├── SinclinChat.tsx  ← Chat IA universal (personas)
+│   ├── AppLayout.tsx    ← Layout raiz com GlobalHeader + TopNav (AppSidebar não usado)
+│   ├── GlobalHeader.tsx ← Tarja superior: logo + busca por módulo + índices econômicos
+│   ├── AppSidebar.tsx   ← ÓRFÃO — existe mas não importado (AppLayout usa TopNav)
+│   ├── TopNav.tsx       ← Nav principal filtrado por perfil (professional/collaborator)
+│   ├── SinclinChat.tsx  ← Chat IA universal (8 personas via Claude Haiku)
 │   ├── VoicePresence.tsx← Orb animado de presença de voz
 │   ├── AIRelay.tsx      ← Relay de findings para IA
 │   ├── CoverageAudit.tsx
 │   └── EngineeringConsole.tsx
 │
 └── pages/
-    ├── Welcome.tsx      ← Entrada ritual + auth (email/senha + confirmação)
-    ├── Dashboard.tsx    ← Dashboard com briefing matinal por voz
-    ├── AnalysisCenter.tsx ← Centro de Análise (scanner + governança)
-    ├── MasterDashboard.tsx ← DEPRECADO (funcionalidade migrada para AnalysisCenter)
-    ├── MarketingShell.tsx  ← Componente stub "Em implementação"
+    ├── Welcome.tsx           ← Entrada ritual + auth
+    ├── Dashboard.tsx         ← Dashboard com briefing matinal por voz
+    ├── FiscalDashboard.tsx   ← Vencimentos agregados + abas NFS-e/Impostos/ANVISA (mai/2026)
+    ├── PatientCadastro.tsx   ← Formulário completo AVEC-compatível + campos dinâmicos + ViaCEP
+    ├── PatientImport.tsx     ← Importação CSV do AVEC em lote com mapeamento automático
+    ├── ConfigFormularios.tsx ← Gerencia campos customizados por formulário e tenant
+    ├── ConfigServicos.tsx    ← Catálogo de serviços com insumos e ativos
+    ├── ConfigPacotes.tsx     ← Pacotes de serviços
+    ├── ConfigComissoes.tsx   ← Regras de comissão (4 bases)
+    ├── ConfigFiscal.tsx      ← Regras de impostos
+    ├── ConfigCustos.tsx      ← Custos operacionais com rateio
+    ├── FinanceiroMargem.tsx  ← DRE simplificado por serviço
+    ├── AnalysisCenter.tsx    ← Centro de Análise (scanner + governança)
+    ├── MasterDashboard.tsx   ← DEPRECADO (migrado para AnalysisCenter)
+    ├── MarketingShell.tsx    ← Stub "Em implementação" para rotas não implementadas
     └── [demais páginas funcionais]
 ```
 

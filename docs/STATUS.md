@@ -1,5 +1,5 @@
 # SINCLIN — Status de Implementação
-**Versão:** 2.3 | **Atualizado:** 2026-05-14
+**Versão:** 2.4 | **Atualizado:** 2026-05-15
 
 ---
 
@@ -36,7 +36,8 @@
 | Módulo Fiscal no menu | ✅ | Substituiu Administrativo |
 | Marketing visível em todos os perfis | ✅ | |
 | Margem/DRE no Financeiro | ✅ | |
-| Serviços/Pacotes/Comissões/Fiscal/Custos no Configurações | ✅ | |
+| Serviços/Pacotes/Comissões/Fiscal/Custos/Formulários no Configurações | ✅ | |
+| Importar do AVEC em Pacientes | ✅ | |
 | Equipe migrada para Clínico | ✅ | |
 | Usuários/Permissões/Unidades migrados para Configurações | ✅ | |
 | AppSidebar | ⚠️ | Arquivo existe mas **não está em uso** (AppLayout usa TopNav) |
@@ -63,7 +64,8 @@
 |---|---|---|---|
 | `/pacientes` | Patients | ✅ | |
 | `/pacientes/:id` | PatientView360 | ✅ | Visão 360 |
-| `/pacientes/cadastro` | PatientCadastro | ✅ | |
+| `/pacientes/cadastro` | PatientCadastro | ✅ | Formulário completo AVEC-compatível, campos dinâmicos de form_configs, masks, ViaCEP |
+| `/pacientes/importar` | PatientImport | ✅ | Importação CSV do AVEC em lote (50/batch), mapeamento automático de colunas, preview |
 | `/pacientes/historico` | PatientHistorico | ✅ | |
 | `/pacientes/documentos` | PatientDocumentos | ✅ | |
 | `/pacientes/anamnese` | PatientAnamnese | ✅ | SIOC integrado |
@@ -121,6 +123,7 @@
 
 | Rota | Componente | Estado | Notas |
 |---|---|---|---|
+| `/config/formularios` | ConfigFormularios | ✅ | Gerencia campos customizados por formulário e tenant (add/edit/remove/ocultar) |
 | `/config/servicos` | ConfigServicos | ✅ | Catálogo com insumos + depreciação de ativos |
 | `/config/pacotes` | ConfigPacotes | ✅ | Pacotes de serviços |
 | `/config/comissoes` | ConfigComissoes | ✅ | Regras (gross/net_tax/net_supplies/net_all) |
@@ -210,8 +213,10 @@
 | Arquivo | Estado |
 |---|---|
 | `docs/migrations/ALL_FASE1.sql` | ✅ Executado |
-| `docs/migrations/presence_memory_schema.sql` | ⬜ **Pendente** |
-| `docs/migrations/facial_analysis.sql` | ⬜ **Pendente** |
+| `docs/migrations/patients_fields.sql` | ✅ Executado (2026-05-15) — 28 cols + 4 índices em `patients` |
+| `docs/migrations/form_configs.sql` | ✅ Executado (2026-05-15) — tabela + RLS + seed (acquisition_source, profession) |
+| `docs/migrations/presence_memory_schema.sql` | ✅ Executado (2026-05-15) |
+| `docs/migrations/facial_analysis.sql` | ✅ Executado (2026-05-15) |
 
 ---
 
