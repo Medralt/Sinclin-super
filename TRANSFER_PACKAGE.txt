@@ -1,5 +1,5 @@
 # 📦 TRANSFER CHAT PACKAGE
-**Gerado em:** Sat, May 16, 2026 12:58:56 PM
+**Gerado em:** sáb, 16 de mai de 2026 13:18:10
 ================================================================================
   SINCLIN — DOCUMENTO DE ARQUITETURA, INSTÂNCIAS E FUNCIONAMENTO
   Atualizado em: 2026-05-12
