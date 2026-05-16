@@ -1,0 +1,404 @@
+# 📦 TRANSFER CHAT PACKAGE
+**Gerado em:** Sat, May 16, 2026 12:58:56 PM
+================================================================================
+  SINCLIN — DOCUMENTO DE ARQUITETURA, INSTÂNCIAS E FUNCIONAMENTO
+  Atualizado em: 2026-05-12
+  Uso: contexto para Claude, GPT ou qualquer agente de IA colaborativa
+================================================================================
+
+--------------------------------------------------------------------------------
+1. VISÃO GERAL DO SISTEMA
+--------------------------------------------------------------------------------
+
+SINCLIN é uma plataforma de saúde integrativa que opera como infraestrutura
+cognitiva organizacional — não apenas um ERP ou chatbot clínico.
+
+Três camadas:
+  [UI]  sinclin-fente    — Frontend React/Vite (Lovable)
+  [IA]  api.sinclin.net  — Backend Express/Node.js com GPT-4o-mini (Render)
+  [BD]  Supabase         — Banco de dados PostgreSQL gerenciado em nuvem
+
+As três instâncias são independentes e se comunicam via HTTP/REST e SDK.
+Não há monorepo único: frontend e backend são repositórios git separados.
+
+--------------------------------------------------------------------------------
+2. INSTÂNCIAS EM PRODUÇÃO
+--------------------------------------------------------------------------------
+
+  INSTÂNCIA         URL                                STATUS
+  ─────────────────────────────────────────────────────────────────────
+  Frontend (UI)     https://sinclin-fente.lovable.app  ONLINE
+  API (Backend)     https://api.sinclin.net            ONLINE
+                    https://sinclin-api.onrender.com   (alias Render)
+  Banco de Dados    https://ucduacwytvghkhnselux.       ONLINE
+                    supabase.co
+  ─────────────────────────────────────────────────────────────────────
+
+  DNS configurado:
+    api.sinclin.net  → CNAME → sinclin-api.onrender.com  (ATIVO)
+    app.sinclin.net  → A     → 185.158.133.1             (OCUPADO - não SINCLIN)
+    ui.sinclin.net   → livre (disponível para custom domain do frontend)
+
+--------------------------------------------------------------------------------
+3. REPOSITÓRIOS GIT
+--------------------------------------------------------------------------------
+
+  REPOSITÓRIO         LOCALIZAÇÃO LOCAL             GITHUB REMOTO
+  ─────────────────────────────────────────────────────────────────────
+  Backend principal   C:\sinclin                    github.com/Medralt/Sinclin-super
+  Frontend (UI)       C:\sinclin\sinclin-fente       github.com/Medralt/sinclin-fente
+  ─────────────────────────────────────────────────────────────────────
+
+  Branch ativo: main (ambos)
+  Deploy automático: Render detecta push em main → deploy do backend
+                     Lovable detecta push em main → deploy do frontend
+
+--------------------------------------------------------------------------------
+4. ESTRUTURA DE PASTAS — BACKEND (C:\sinclin)
+--------------------------------------------------------------------------------
+
+  C:\sinclin\
+  ├── staging\
+  │   └── api\                    ← RAIZ DO SERVIDOR NODE.JS
+  │       ├── server.js           ← Ponto de entrada principal (Express)
+  │       ├── decision.engine.js  ← SIOC: engine stateless (recebe estado do manager)
+  │       ├── session.manager.js  ← Sessões em memória + persistência Supabase
+  │       ├── supabase.client.js  ← Cliente Supabase (graceful — opcional)
+  │       ├── device.registry.js  ← Registro de dispositivos médicos
+  │       ├── adapters\           ← Adaptadores por dispositivo (SIOC)
+  │       │   ├── diagnostico.adapter.js
+  │       │   ├── camera.adapter.js
+  │       │   ├── pagamento.adapter.js
+  │       │   ├── prontuario.adapter.js
+  │       │   └── iot.adapter.js
+  │       ├── package.json
+  │       └── node_modules\
+  ├── docs\
+  │   ├── adr\                    ← Architecture Decision Records
+  │   ├── governance\             ← Regras de governança
+  │   ├── manifest\               ← Manifesto cognitivo
+  │   ├── migrations\             ← SQL migrations (executar no Supabase)
+  │   │   └── 001_sioc_sessions.sql
+  │   ├── principles\             ← Constituição do sistema
+  │   ├── protocols\              ← Protocolo Claude Code
+  │   └── vision\                 ← Visão filosófica
+  ├── render.yaml                 ← Configuração de deploy no Render
+  └── SINCLIN_ARQUITETURA.txt     ← este documento
+
+--------------------------------------------------------------------------------
+5. ESTRUTURA DE PASTAS — FRONTEND (C:\sinclin\sinclin-fente)
+--------------------------------------------------------------------------------
+
+  sinclin-fente\
+  ├── src\
+  │   ├── core\                   ← Módulos centrais da aplicação
+  │   │   ├── apiConfig.ts        ← URL base, endpoints e buildChatBody
+  │   │   ├── chatApi.ts          ← sendChatMessage(msg, { persona, session })
+  │   │   ├── scanner.ts          ← Motor de varredura (5 scanners)
+  │   │   ├── scannerData.ts      ← Dados e tipos do scanner
+  │   │   ├── store.ts            ← Estado global (Zustand): roles, fullName
+  │   │   ├── localDb.ts          ← Cliente Supabase (PostgreSQL)
+  │   │   ├── audit.ts            ← Log de auditoria → tabela audit_logs
+  │   │   ├── runtimeBus.ts       ← Barramento de eventos internos
+  │   │   ├── intelligence.ts     ← Lógica de inteligência local
+  │   │   ├── coverage.ts         ← Cobertura de funcionalidades
+  │   │   ├── engineering.ts      ← Utilitários de engenharia
+  │   │   ├── execution.ts        ← Executor de ações do scanner
+  │   │   └── voice.ts            ← Módulo de voz
+  │   ├── pages\                  ← Páginas implementadas
+  │   │   ├── Dashboard.tsx
+  │   │   ├── Patients.tsx
+  │   │   ├── PatientView360.tsx
+  │   │   ├── Financial.tsx
+  │   │   ├── FinancialCaixa.tsx
+  │   │   ├── FinancialFaturamento.tsx
+  │   │   ├── FinancialPagar.tsx
+  │   │   ├── FinancialRelatorios.tsx
+  │   │   ├── FinancialConvenios.tsx
+  │   │   ├── AnalysisCenter.tsx
+  │   │   ├── MarketingOverview.tsx
+  │   │   ├── MarketingLeads.tsx
+  │   │   ├── MarketingFunil.tsx
+  │   │   ├── MarketingCrm.tsx
+  │   │   ├── MarketingShell.tsx  ← Shell com IA para marketing/config
+  │   │   ├── KnowledgeLibrary.tsx
+  │   │   ├── ClinicalProtocols.tsx
+  │   │   ├── KnowledgeAssistant.tsx
+  │   │   ├── ClinicalAgenda.tsx
+  │   │   ├── ClinicalProntuario.tsx
+  │   │   ├── ClinicalEvolucao.tsx
+  │   │   ├── ClinicalProcedimentos.tsx
+  │   │   ├── ClinicalPrescricoes.tsx
+  │   │   ├── AdminUsuarios.tsx
+  │   │   ├── AdminPermissoes.tsx
+  │   │   ├── AdminEquipe.tsx
+  │   │   ├── AdminUnidades.tsx
+  │   │   ├── AdminLogs.tsx
+  │   │   └── AdminAuditoria.tsx
+  │   ├── components\             ← Componentes React reutilizáveis
+  │   │   ├── SinclinChat.tsx     ← Chat IA com prop persona
+  │   │   ├── AIRelay.tsx
+  │   │   ├── AppLayout.tsx
+  │   │   └── ...
+  │   └── App.tsx                 ← Roteador principal (todas as rotas implementadas)
+  ├── .env                        ← Credenciais Supabase
+  ├── package.json
+  ├── vite.config.ts
+  └── dist\                       ← Build de produção
+
+  Stack: React 18 + Vite + TypeScript + TailwindCSS + shadcn/ui
+         react-router-dom v6 + Supabase (localDb) + Zustand
+
+--------------------------------------------------------------------------------
+6. BACKEND — ENDPOINTS DA API (staging/api/server.js)
+--------------------------------------------------------------------------------
+
+  MÉTODO  ROTA                    DESCRIÇÃO
+  ─────────────────────────────────────────────────────────────────────
+  GET     /health                 Status de todos os módulos
+  GET     /scanner                Introspection do runtime (uptime, mem)
+  GET     /runtime                Status dos módulos (chat/sioc/session/devices)
+  GET     /orchestration          Status da orquestração e agentes
+  POST    /chat                   Chat IA multi-persona (GPT-4o-mini)
+  POST    /sioc                   Anamnese guiada (state machine)
+  GET     /sioc/:session_id       Leitura de sessão SIOC
+  POST    /sioc/device/:type      Ingestão de dados de dispositivo médico
+  ─────────────────────────────────────────────────────────────────────
+
+  CONTRATO DO /chat:
+    Request body aceita:
+      { raw_text }          → clientes locais e SIOC
+      { text, persona, session } → Lovable UI
+    Persona: clinical (default) | scanner | admin | financial | marketing | orchestrator
+    Response:
+      { ok: true, text: "...", engine: "gpt-4o-mini", persona: "...", timestamp: "..." }
+    History opcional:
+      { history: [{ role: "user"|"assistant", text: "..." }] }
+
+  SYSTEM PROMPTS POR PERSONA (PERSONAS map em server.js):
+    clinical    → IA empática de saúde integrativa (default)
+    scanner     → Modo analítico-técnico, classifica por severidade
+    admin       → Modo administrativo, segurança e rastreabilidade
+    financial   → Modo financeiro, precisão numérica e anomalias
+    marketing   → Modo marketing, conversão e crescimento
+    orchestrator → Visão sistêmica organizacional
+
+--------------------------------------------------------------------------------
+7. MÓDULO SIOC — ANAMNESE GUIADA
+--------------------------------------------------------------------------------
+
+  SIOC = Sistema Integrado de Orientação Clínica
+
+  decision.engine.js — STATELESS:
+    Recebe: { session_id, input, current_step, current_data }
+    Retorna: { text, next_step, structured }
+    Sem estado interno — todo estado vive no session.manager
+
+  session.manager.js — PERSISTENTE:
+    L1 cache: Map em memória (TTL: 4h)
+    L2 storage: Supabase (tabela sioc_sessions)
+    Comportamento: upsert assíncrono não-bloqueante + re-hidratação no get
+    Degradação: se SUPABASE_URL/SERVICE_KEY ausentes → memória apenas
+
+  Máquina de estados:
+    start → coletar_id → coletar_nome → coletar_idade
+          → coletar_queixa → coletar_intensidade → finalizado
+
+--------------------------------------------------------------------------------
+8. BANCO DE DADOS — TABELAS SUPABASE
+--------------------------------------------------------------------------------
+
+  TABELA               USO
+  ─────────────────────────────────────────────────────────────────────
+  patients             Cadastro de pacientes
+  financial_records    Lançamentos financeiros (receita/despesa)
+  appointments         Agenda clínica e procedimentos
+  clinical_protocols   Protocolos clínicos
+  knowledge_articles   Base de conhecimento
+  leads                CRM / leads de marketing
+  scanner_findings     Achados do scanner de qualidade
+  scanner_fixes        Histórico de correções automáticas
+  ai_prompt_requests   Fila de requisições IA V1 (AIRelay)
+  audit_logs           Trilha de auditoria de ações
+  sioc_sessions        Sessões SIOC persistidas (ver migration 001)
+  ─────────────────────────────────────────────────────────────────────
+
+  Migration pendente:
+    docs/migrations/001_sioc_sessions.sql — executar no Supabase SQL Editor
+
+--------------------------------------------------------------------------------
+9. SCANNER DA UI — COMO FUNCIONA (scanner.ts)
+--------------------------------------------------------------------------------
+
+  SCANNER 1 — Runtime DOM:   detecta links para rotas não registradas
+  SCANNER 2 — Rotas:         testa navegação real, classifica erros
+  SCANNER 3 — Interação:     detecta botões sem handler, inputs sem label
+  SCANNER 4 — Carregamento:  detecta renders vazios e timeouts
+  SCANNER 5 — Dados:         duplicados, órfãos, valores negativos, vencidos
+
+  Findings persistidos no Supabase (scanner_findings) com deduplicação.
+  IA usa persona "scanner" → respostas técnicas e objetivas.
+
+--------------------------------------------------------------------------------
+10. COMO O FRONTEND SE COMUNICA COM A API
+--------------------------------------------------------------------------------
+
+  Arquivo:  src/core/apiConfig.ts
+  URL base: https://api.sinclin.net  (hardcoded)
+
+  Arquivo:  src/core/chatApi.ts → sendChatMessage(message, { persona, session })
+    Persona é passada por cada página/contexto:
+      AnalysisCenter  → scanner
+      KnowledgeAssistant → clinical
+      SinclinChat     → prop persona (default: orchestrator)
+      Financial pages → financial (via SinclinChat)
+      Admin pages     → admin (via SinclinChat)
+      Marketing pages → marketing (via SinclinChat)
+
+--------------------------------------------------------------------------------
+11. DEPLOY E INFRAESTRUTURA
+--------------------------------------------------------------------------------
+
+  BACKEND (Render):
+    Arquivo: render.yaml
+    Build:   cd staging/api && npm install
+    Start:   cd staging/api && node server.js
+    Health:  /health
+    Env vars obrigatórias:
+      OPENAI_API_KEY          → chave OpenAI (GPT-4o-mini)
+      PORT                    → definida pelo Render automaticamente
+    Env vars para persistência SIOC (adicionar no Render):
+      SUPABASE_URL            → https://ucduacwytvghkhnselux.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY → obtida em Supabase → Settings → API
+    Env vars opcionais (dispositivos):
+      SIOC_DIAGNOSTICO_ENABLED=true
+      SIOC_CAMERA_ENABLED=true
+      SIOC_PAGAMENTO_ENABLED=true
+      SIOC_PRONTUARIO_ENABLED=true
+      SIOC_IOT_ENABLED=true
+
+  FRONTEND (Lovable):
+    Repo:    github.com/Medralt/sinclin-fente
+    URL:     sinclin-fente.lovable.app
+    Deploy:  automático pelo Lovable via GitHub
+    Domínio custom disponível: ui.sinclin.net
+
+  BANCO DE DADOS (Supabase):
+    Projeto: ucduacwytvghkhnselux
+    URL:     https://ucduacwytvghkhnselux.supabase.co
+
+--------------------------------------------------------------------------------
+12. ROLES E PERMISSÕES
+--------------------------------------------------------------------------------
+
+  super_admin    → acesso total incluindo ações destrutivas
+  administrativo → acesso administrativo (isAdmin() = true)
+  clinico        → acesso clínico padrão
+
+  Verificação:  isAdmin(roles) → super_admin || administrativo
+  Auditoria:    logAction(action, table, id) → tabela audit_logs
+
+--------------------------------------------------------------------------------
+13. ROTAS DO FRONTEND (react-router-dom v6)
+--------------------------------------------------------------------------------
+
+  IMPLEMENTADAS (componente real):
+    /                           Dashboard
+    /pacientes                  Patients
+    /pacientes/:id              PatientView360
+    /financeiro                 Financial
+    /financeiro/caixa           FinancialCaixa
+    /financeiro/faturamento     FinancialFaturamento
+    /financeiro/pagar           FinancialPagar
+    /financeiro/relatorios      FinancialRelatorios
+    /financeiro/convenios       FinancialConvenios
+    /centro                     AnalysisCenter (Scanner)
+    /marketing                  MarketingOverview
+    /marketing/leads            MarketingLeads
+    /marketing/funil            MarketingFunil
+    /marketing/crm              MarketingCrm
+    /conhecimento/biblioteca    KnowledgeLibrary
+    /conhecimento/protocolos    ClinicalProtocols
+    /conhecimento/ia            KnowledgeAssistant
+    /clinico/agenda             ClinicalAgenda
+    /clinico/atendimentos       ClinicalAgenda
+    /clinico/prontuario         ClinicalProntuario
+    /clinico/evolucao           ClinicalEvolucao
+    /clinico/procedimentos      ClinicalProcedimentos
+    /clinico/prescricoes        ClinicalPrescricoes
+    /clinico/protocolos         ClinicalProtocols
+    /admin/usuarios             AdminUsuarios
+    /admin/permissoes           AdminPermissoes
+    /admin/equipe               AdminEquipe
+    /admin/unidades             AdminUnidades
+    /admin/logs                 AdminLogs
+    /admin/auditoria            AdminAuditoria
+
+  COM SHELL IA (MarketingShell com persona correta):
+    /marketing/campanhas, /marketing/automacoes, /marketing/agenda
+    /marketing/propostas, /marketing/conversoes, /marketing/relatorios
+    /marketing/integracoes
+    /conhecimento/treinamentos, /conhecimento/documentacao, /conhecimento/faq
+    /config/preferencias, /config/integracoes, /config/api
+    /config/seguranca, /config/backup, /config/ui
+    /pacientes/fotos
+
+  STUBS RESTANTES (Placeholder simples):
+    /pacientes/cadastro, /pacientes/historico, /pacientes/documentos
+    /pacientes/anamnese
+
+--------------------------------------------------------------------------------
+14. PENDÊNCIAS E PRÓXIMOS PASSOS
+--------------------------------------------------------------------------------
+
+  [ ] Executar migração SIOC no Supabase:
+      SQL Editor → colar docs/migrations/001_sioc_sessions.sql → executar
+
+  [ ] Adicionar env vars no Render para persistência SIOC:
+      SUPABASE_URL=https://ucduacwytvghkhnselux.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY=<obtida em Supabase → Settings → API → service_role>
+
+  [ ] Domínio frontend:
+      Configurar ui.sinclin.net → sinclin-fente.lovable.app no Lovable settings
+
+  [ ] app.sinclin.net:
+      Remover A record 185.158.133.1 no Namecheap
+
+  [ ] Stubs de pacientes restantes:
+      /pacientes/cadastro, /pacientes/historico, /pacientes/documentos, /pacientes/anamnese
+
+  [ ] Dashboard — carregar stats reais:
+      Dashboard.tsx atualmente exibe zeros; conectar às tabelas Supabase
+
+  [ ] Ativar dispositivos SIOC:
+      SIOC_DIAGNOSTICO_ENABLED=true, etc. no Render
+
+--------------------------------------------------------------------------------
+15. VARIÁVEIS DE AMBIENTE
+--------------------------------------------------------------------------------
+
+  BACKEND (Render — configurar no painel):
+    OPENAI_API_KEY            obrigatória (GPT-4o-mini)         ← JÁ CONFIGURADA
+    PORT                      automática (Render injeta)
+    NODE_ENV=production       definida no render.yaml
+    SUPABASE_URL              para persistência SIOC             ← PENDENTE
+    SUPABASE_SERVICE_ROLE_KEY para persistência SIOC             ← PENDENTE
+    SIOC_*_ENABLED            opcionais (ativar dispositivos)
+
+  FRONTEND (.env local — C:\sinclin\sinclin-fente\.env):
+    VITE_SUPABASE_PROJECT_ID=ucduacwytvghkhnselux
+    VITE_SUPABASE_PUBLISHABLE_KEY=eyJ...
+    VITE_SUPABASE_URL=https://ucduacwytvghkhnselux.supabase.co
+
+--------------------------------------------------------------------------------
+FIM DO DOCUMENTO
+================================================================================
+
+## VARIÁVEIS
+RENDER_API_KEY
+RENDER_SERVICE_ID
+NODE_ENV=production
+PORT=3000
+
+RENDER_API_KEY=
+RENDER_SERVICE_ID=
